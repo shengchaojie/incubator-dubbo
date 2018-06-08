@@ -50,6 +50,7 @@ import java.util.concurrent.Executors;
 import static com.alibaba.dubbo.common.Constants.ACCEPT_FOREIGN_IP;
 import static com.alibaba.dubbo.common.Constants.QOS_ENABLE;
 import static com.alibaba.dubbo.common.Constants.QOS_PORT;
+import static com.alibaba.dubbo.common.Constants.VALIDATION_KEY;
 
 /**
  * RegistryProtocol
@@ -111,6 +112,7 @@ public class RegistryProtocol implements Protocol {
         this.proxyFactory = proxyFactory;
     }
 
+    @Override
     public int getDefaultPort() {
         return 9090;
     }
@@ -124,6 +126,7 @@ public class RegistryProtocol implements Protocol {
         registry.register(registedProviderUrl);
     }
 
+    @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
         //export invoker
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker);
@@ -227,7 +230,8 @@ public class RegistryProtocol implements Protocol {
                 .removeParameter(Constants.BIND_PORT_KEY)
                 .removeParameter(QOS_ENABLE)
                 .removeParameter(QOS_PORT)
-                .removeParameter(ACCEPT_FOREIGN_IP);
+                .removeParameter(ACCEPT_FOREIGN_IP)
+                .removeParameter(VALIDATION_KEY);
         return registedProviderUrl;
     }
 
@@ -265,6 +269,7 @@ public class RegistryProtocol implements Protocol {
         return key;
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         url = url.setProtocol(url.getParameter(Constants.REGISTRY_KEY, Constants.DEFAULT_REGISTRY)).removeParameter(Constants.REGISTRY_KEY);
@@ -311,6 +316,7 @@ public class RegistryProtocol implements Protocol {
         return invoker;
     }
 
+    @Override
     public void destroy() {
         List<Exporter<?>> exporters = new ArrayList<Exporter<?>>(bounds.values());
         for (Exporter<?> exporter : exporters) {
@@ -359,6 +365,7 @@ public class RegistryProtocol implements Protocol {
         /**
          * @param urls The list of registered information , is always not empty, The meaning is the same as the return value of {@link com.alibaba.dubbo.registry.RegistryService#lookup(URL)}.
          */
+        @Override
         public synchronized void notify(List<URL> urls) {
             logger.debug("original override urls: " + urls);
             List<URL> matchedUrls = getMatchedUrls(urls, subscribeUrl);
@@ -450,6 +457,7 @@ public class RegistryProtocol implements Protocol {
             return originInvoker;
         }
 
+        @Override
         public Invoker<T> getInvoker() {
             return exporter.getInvoker();
         }
@@ -458,6 +466,7 @@ public class RegistryProtocol implements Protocol {
             this.exporter = exporter;
         }
 
+        @Override
         public void unexport() {
             String key = getCacheKey(this.originInvoker);
             bounds.remove(key);
@@ -481,10 +490,12 @@ public class RegistryProtocol implements Protocol {
             this.registerUrl = registerUrl;
         }
 
+        @Override
         public Invoker<T> getInvoker() {
             return exporter.getInvoker();
         }
 
+        @Override
         public void unexport() {
             Registry registry = RegistryProtocol.INSTANCE.getRegistry(originInvoker);
             try {

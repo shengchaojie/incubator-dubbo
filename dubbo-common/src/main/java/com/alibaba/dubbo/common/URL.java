@@ -224,7 +224,7 @@ public final class URL implements Serializable {
             path = url.substring(i + 1);
             url = url.substring(0, i);
         }
-        i = url.indexOf("@");
+        i = url.lastIndexOf("@");
         if (i >= 0) {
             username = url.substring(0, i);
             int j = username.indexOf(":");
@@ -1080,6 +1080,7 @@ public final class URL implements Serializable {
         return map;
     }
 
+    @Override
     public String toString() {
         if (string != null) {
             return string;

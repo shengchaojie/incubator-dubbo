@@ -19,6 +19,7 @@ package com.alibaba.dubbo.config.spring.util;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.PropertySources;
+import org.springframework.core.env.PropertySourcesPropertyResolver;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -35,24 +36,26 @@ public abstract class PropertySourcesUtils {
     /**
      * Get Sub {@link Properties}
      *
-     * @param propertySources {@link PropertySources}
+     * @param propertySources {@link PropertySource} Iterable
      * @param prefix          the prefix of property name
-     * @return Map<String, String>
+     * @return Map<String                                                                                                                                                                                                                                                               ,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               String>
      * @see Properties
      */
-    public static Map<String, String> getSubProperties(PropertySources propertySources, String prefix) {
+    public static Map<String, String> getSubProperties(Iterable<PropertySource<?>> propertySources, String prefix) {
 
         Map<String, String> subProperties = new LinkedHashMap<String, String>();
 
-        String normalizedPrefix = prefix.endsWith(".") ? prefix : prefix + ".";
+        String normalizedPrefix = normalizePrefix(prefix);
+
+        PropertySourcesPropertyResolver propertyResolver = new PropertySourcesPropertyResolver((PropertySources) propertySources);
 
         for (PropertySource<?> source : propertySources) {
             if (source instanceof EnumerablePropertySource) {
                 for (String name : ((EnumerablePropertySource<?>) source).getPropertyNames()) {
                     if (name.startsWith(normalizedPrefix)) {
                         String subName = name.substring(normalizedPrefix.length());
-                        Object value = source.getProperty(name);
-                        subProperties.put(subName, String.valueOf(value));
+                        String value = propertyResolver.getProperty(name);
+                        subProperties.put(subName, value);
                     }
                 }
             }
@@ -60,6 +63,16 @@ public abstract class PropertySourcesUtils {
 
         return subProperties;
 
+    }
+
+    /**
+     * Normalize the prefix
+     *
+     * @param prefix the prefix
+     * @return the prefix
+     */
+    public static String normalizePrefix(String prefix) {
+        return prefix.endsWith(".") ? prefix : prefix + ".";
     }
 
 }

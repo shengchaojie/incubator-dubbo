@@ -18,6 +18,7 @@ package com.alibaba.dubbo.remoting.exchange.support.header;
 
 import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.common.Version;
 import com.alibaba.dubbo.common.logger.Logger;
 import com.alibaba.dubbo.common.logger.LoggerFactory;
 import com.alibaba.dubbo.remoting.Channel;
@@ -72,10 +73,12 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         }
     }
 
+    @Override
     public void send(Object message) throws RemotingException {
         send(message, getUrl().getParameter(Constants.SENT_KEY, false));
     }
 
+    @Override
     public void send(Object message, boolean sent) throws RemotingException {
         if (closed) {
             throw new RemotingException(this.getLocalAddress(), null, "Failed to send message " + message + ", cause: The channel " + this + " is closed!");
@@ -86,24 +89,26 @@ final class HeaderExchangeChannel implements ExchangeChannel {
             channel.send(message, sent);
         } else {
             Request request = new Request();
-            request.setVersion("2.0.0");
+            request.setVersion(Version.getProtocolVersion());
             request.setTwoWay(false);
             request.setData(message);
             channel.send(request, sent);
         }
     }
 
+    @Override
     public ResponseFuture request(Object request) throws RemotingException {
         return request(request, channel.getUrl().getPositiveParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT));
     }
 
+    @Override
     public ResponseFuture request(Object request, int timeout) throws RemotingException {
         if (closed) {
             throw new RemotingException(this.getLocalAddress(), null, "Failed to send request " + request + ", cause: The channel " + this + " is closed!");
         }
         // create request.
         Request req = new Request();
-        req.setVersion("2.0.0");
+        req.setVersion(Version.getProtocolVersion());
         req.setTwoWay(true);
         req.setData(request);
         DefaultFuture future = new DefaultFuture(channel, req, timeout);
@@ -116,10 +121,12 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         return future;
     }
 
+    @Override
     public boolean isClosed() {
         return closed;
     }
 
+    @Override
     public void close() {
         try {
             channel.close();
@@ -129,6 +136,7 @@ final class HeaderExchangeChannel implements ExchangeChannel {
     }
 
     // graceful close
+    @Override
     public void close(int timeout) {
         if (closed) {
             return;
@@ -153,42 +161,52 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         channel.startClose();
     }
 
+    @Override
     public InetSocketAddress getLocalAddress() {
         return channel.getLocalAddress();
     }
 
+    @Override
     public InetSocketAddress getRemoteAddress() {
         return channel.getRemoteAddress();
     }
 
+    @Override
     public URL getUrl() {
         return channel.getUrl();
     }
 
+    @Override
     public boolean isConnected() {
         return channel.isConnected();
     }
 
+    @Override
     public ChannelHandler getChannelHandler() {
         return channel.getChannelHandler();
     }
 
+    @Override
     public ExchangeHandler getExchangeHandler() {
         return (ExchangeHandler) channel.getChannelHandler();
     }
 
+    @Override
     public Object getAttribute(String key) {
         return channel.getAttribute(key);
     }
 
+    @Override
     public void setAttribute(String key, Object value) {
         channel.setAttribute(key, value);
     }
 
+    @Override
     public void removeAttribute(String key) {
         channel.removeAttribute(key);
     }
 
+    @Override
     public boolean hasAttribute(String key) {
         return channel.hasAttribute(key);
     }

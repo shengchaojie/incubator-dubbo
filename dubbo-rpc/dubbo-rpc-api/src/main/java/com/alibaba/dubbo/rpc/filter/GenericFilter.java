@@ -32,10 +32,12 @@ import com.alibaba.dubbo.rpc.Filter;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
+import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.RpcInvocation;
 import com.alibaba.dubbo.rpc.RpcResult;
 import com.alibaba.dubbo.rpc.service.GenericException;
+import com.alibaba.dubbo.rpc.service.GenericService;
 import com.alibaba.dubbo.rpc.support.ProtocolUtils;
 
 import java.io.IOException;
@@ -47,11 +49,12 @@ import java.lang.reflect.Method;
 @Activate(group = Constants.PROVIDER, order = -20000)
 public class GenericFilter implements Filter {
 
+    @Override
     public Result invoke(Invoker<?> invoker, Invocation inv) throws RpcException {
         if (inv.getMethodName().equals(Constants.$INVOKE)
                 && inv.getArguments() != null
                 && inv.getArguments().length == 3
-                && !ProtocolUtils.isGeneric(invoker.getUrl().getParameter(Constants.GENERIC_KEY))) {
+                && !invoker.getInterface().equals(GenericService.class)) {
             String name = ((String) inv.getArguments()[0]).trim();
             String[] types = (String[]) inv.getArguments()[1];
             Object[] args = (Object[]) inv.getArguments()[2];
@@ -62,6 +65,11 @@ public class GenericFilter implements Filter {
                     args = new Object[params.length];
                 }
                 String generic = inv.getAttachment(Constants.GENERIC_KEY);
+
+                if (StringUtils.isBlank(generic)) {
+                    generic = RpcContext.getContext().getAttachment(Constants.GENERIC_KEY);
+                }
+
                 if (StringUtils.isEmpty(generic)
                         || ProtocolUtils.isDefaultGenericSerialization(generic)) {
                     args = PojoUtils.realize(args, params, method.getGenericParameterTypes());
@@ -78,12 +86,12 @@ public class GenericFilter implements Filter {
                             }
                         } else {
                             throw new RpcException(
-                                    new StringBuilder(32).append("Generic serialization [")
-                                            .append(Constants.GENERIC_SERIALIZATION_NATIVE_JAVA)
-                                            .append("] only support message type ")
-                                            .append(byte[].class)
-                                            .append(" and your message type is ")
-                                            .append(args[i].getClass()).toString());
+                                    "Generic serialization [" +
+                                            Constants.GENERIC_SERIALIZATION_NATIVE_JAVA +
+                                            "] only support message type " +
+                                            byte[].class +
+                                            " and your message type is " +
+                                            args[i].getClass());
                         }
                     }
                 } else if (ProtocolUtils.isBeanGenericSerialization(generic)) {
@@ -92,13 +100,12 @@ public class GenericFilter implements Filter {
                             args[i] = JavaBeanSerializeUtil.deserialize((JavaBeanDescriptor) args[i]);
                         } else {
                             throw new RpcException(
-                                    new StringBuilder(32)
-                                            .append("Generic serialization [")
-                                            .append(Constants.GENERIC_SERIALIZATION_BEAN)
-                                            .append("] only support message type ")
-                                            .append(JavaBeanDescriptor.class.getName())
-                                            .append(" and your message type is ")
-                                            .append(args[i].getClass().getName()).toString());
+                                    "Generic serialization [" +
+                                            Constants.GENERIC_SERIALIZATION_BEAN +
+                                            "] only support message type " +
+                                            JavaBeanDescriptor.class.getName() +
+                                            " and your message type is " +
+                                            args[i].getClass().getName());
                         }
                     }
                 }

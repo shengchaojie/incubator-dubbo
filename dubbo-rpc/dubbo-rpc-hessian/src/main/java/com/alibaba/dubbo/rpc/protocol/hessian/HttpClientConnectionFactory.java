@@ -16,6 +16,8 @@
  */
 package com.alibaba.dubbo.rpc.protocol.hessian;
 
+import com.alibaba.dubbo.common.Constants;
+import com.alibaba.dubbo.rpc.RpcContext;
 import com.caucho.hessian.client.HessianConnection;
 import com.caucho.hessian.client.HessianConnectionFactory;
 import com.caucho.hessian.client.HessianProxyFactory;
@@ -33,13 +35,20 @@ public class HttpClientConnectionFactory implements HessianConnectionFactory {
 
     private final HttpClient httpClient = new DefaultHttpClient();
 
+    @Override
     public void setHessianProxyFactory(HessianProxyFactory factory) {
         HttpConnectionParams.setConnectionTimeout(httpClient.getParams(), (int) factory.getConnectTimeout());
         HttpConnectionParams.setSoTimeout(httpClient.getParams(), (int) factory.getReadTimeout());
     }
 
+    @Override
     public HessianConnection open(URL url) throws IOException {
-        return new HttpClientConnection(httpClient, url);
+        HttpClientConnection httpClientConnection = new HttpClientConnection(httpClient, url);
+        RpcContext context = RpcContext.getContext();
+        for (String key : context.getAttachments().keySet()) {
+            httpClientConnection.addHeader(Constants.DEFAULT_EXCHANGER + key, context.getAttachment(key));
+        }
+        return httpClientConnection;
     }
 
 }

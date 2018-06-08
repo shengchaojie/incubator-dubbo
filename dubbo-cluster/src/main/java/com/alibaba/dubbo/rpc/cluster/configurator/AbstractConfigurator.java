@@ -40,14 +40,12 @@ public abstract class AbstractConfigurator implements Configurator {
         this.configuratorUrl = url;
     }
 
-    public static void main(String[] args) {
-        System.out.println(URL.encode("timeout=100"));
-    }
-
+    @Override
     public URL getUrl() {
         return configuratorUrl;
     }
 
+    @Override
     public URL configure(URL url) {
         if (configuratorUrl == null || configuratorUrl.getHost() == null
                 || url == null || url.getHost() == null) {
@@ -77,23 +75,23 @@ public abstract class AbstractConfigurator implements Configurator {
             String currentApplication = url.getParameter(Constants.APPLICATION_KEY, url.getUsername());
             if (configApplication == null || Constants.ANY_VALUE.equals(configApplication)
                     || configApplication.equals(currentApplication)) {
-                Set<String> condtionKeys = new HashSet<String>();
-                condtionKeys.add(Constants.CATEGORY_KEY);
-                condtionKeys.add(Constants.CHECK_KEY);
-                condtionKeys.add(Constants.DYNAMIC_KEY);
-                condtionKeys.add(Constants.ENABLED_KEY);
+                Set<String> conditionKeys = new HashSet<String>();
+                conditionKeys.add(Constants.CATEGORY_KEY);
+                conditionKeys.add(Constants.CHECK_KEY);
+                conditionKeys.add(Constants.DYNAMIC_KEY);
+                conditionKeys.add(Constants.ENABLED_KEY);
                 for (Map.Entry<String, String> entry : configuratorUrl.getParameters().entrySet()) {
                     String key = entry.getKey();
                     String value = entry.getValue();
                     if (key.startsWith("~") || Constants.APPLICATION_KEY.equals(key) || Constants.SIDE_KEY.equals(key)) {
-                        condtionKeys.add(key);
+                        conditionKeys.add(key);
                         if (value != null && !Constants.ANY_VALUE.equals(value)
                                 && !value.equals(url.getParameter(key.startsWith("~") ? key.substring(1) : key))) {
                             return url;
                         }
                     }
                 }
-                return doConfigure(url, configuratorUrl.removeParameters(condtionKeys));
+                return doConfigure(url, configuratorUrl.removeParameters(conditionKeys));
             }
         }
         return url;
@@ -107,6 +105,7 @@ public abstract class AbstractConfigurator implements Configurator {
      * @param o
      * @return
      */
+    @Override
     public int compareTo(Configurator o) {
         if (o == null) {
             return -1;
@@ -116,13 +115,7 @@ public abstract class AbstractConfigurator implements Configurator {
         if (ipCompare == 0) {//host is the same, sort by priority
             int i = getUrl().getParameter(Constants.PRIORITY_KEY, 0),
                     j = o.getUrl().getParameter(Constants.PRIORITY_KEY, 0);
-            if (i < j) {
-                return -1;
-            } else if (i > j) {
-                return 1;
-            } else {
-                return 0;
-            }
+            return i < j ? -1 : (i == j ? 0 : 1);
         } else {
             return ipCompare;
         }

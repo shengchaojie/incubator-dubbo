@@ -24,12 +24,16 @@ import com.alibaba.dubbo.remoting.http.HttpServer;
 import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.protocol.AbstractProxyProtocol;
-
+import com.alibaba.dubbo.rpc.service.GenericService;
+import com.alibaba.dubbo.rpc.support.ProtocolUtils;
+import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.remoting.RemoteAccessException;
 import org.springframework.remoting.httpinvoker.HttpComponentsHttpInvokerRequestExecutor;
 import org.springframework.remoting.httpinvoker.HttpInvokerProxyFactoryBean;
 import org.springframework.remoting.httpinvoker.HttpInvokerServiceExporter;
 import org.springframework.remoting.httpinvoker.SimpleHttpInvokerRequestExecutor;
+import org.springframework.remoting.support.RemoteInvocation;
+import org.springframework.remoting.support.RemoteInvocationFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -61,10 +65,12 @@ public class HttpProtocol extends AbstractProxyProtocol {
         this.httpBinder = httpBinder;
     }
 
+    @Override
     public int getDefaultPort() {
         return DEFAULT_PORT;
     }
 
+    @Override
     protected <T> Runnable doExport(final T impl, Class<T> type, URL url) throws RpcException {
         String addr = getAddr(url);
         HttpServer server = serverMap.get(addr);
@@ -72,6 +78,22 @@ public class HttpProtocol extends AbstractProxyProtocol {
             server = httpBinder.bind(url, new InternalHandler());
             serverMap.put(addr, server);
         }
+        final String path = url.getAbsolutePath();
+        skeletonMap.put(path, createExporter(impl, type));
+
+        final String genericPath = path + "/" + Constants.GENERIC_KEY;
+
+        skeletonMap.put(genericPath, createExporter(impl, GenericService.class));
+        return new Runnable() {
+            @Override
+            public void run() {
+                skeletonMap.remove(path);
+                skeletonMap.remove(genericPath);
+            }
+        };
+    }
+
+    private <T> HttpInvokerServiceExporter createExporter(T impl, Class<?> type) {
         final HttpInvokerServiceExporter httpServiceExporter = new HttpInvokerServiceExporter();
         httpServiceExporter.setServiceInterface(type);
         httpServiceExporter.setService(impl);
@@ -80,23 +102,38 @@ public class HttpProtocol extends AbstractProxyProtocol {
         } catch (Exception e) {
             throw new RpcException(e.getMessage(), e);
         }
-        final String path = url.getAbsolutePath();
-        skeletonMap.put(path, httpServiceExporter);
-        return new Runnable() {
-            public void run() {
-                skeletonMap.remove(path);
-            }
-        };
+        return httpServiceExporter;
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     protected <T> T doRefer(final Class<T> serviceType, final URL url) throws RpcException {
+        final String generic = url.getParameter(Constants.GENERIC_KEY);
+        final boolean isGeneric = ProtocolUtils.isGeneric(generic) || serviceType.equals(GenericService.class);
+
         final HttpInvokerProxyFactoryBean httpProxyFactoryBean = new HttpInvokerProxyFactoryBean();
-        httpProxyFactoryBean.setServiceUrl(url.toIdentityString());
+        httpProxyFactoryBean.setRemoteInvocationFactory(new RemoteInvocationFactory() {
+            @Override
+            public RemoteInvocation createRemoteInvocation(MethodInvocation methodInvocation) {
+                RemoteInvocation invocation = new HttpRemoteInvocation(methodInvocation);
+                if (isGeneric) {
+                    invocation.addAttribute(Constants.GENERIC_KEY, generic);
+                }
+                return invocation;
+            }
+        });
+
+        String key = url.toIdentityString();
+        if (isGeneric) {
+            key = key + "/" + Constants.GENERIC_KEY;
+        }
+
+        httpProxyFactoryBean.setServiceUrl(key);
         httpProxyFactoryBean.setServiceInterface(serviceType);
         String client = url.getParameter(Constants.CLIENT_KEY);
         if (client == null || client.length() == 0 || "simple".equals(client)) {
             SimpleHttpInvokerRequestExecutor httpInvokerRequestExecutor = new SimpleHttpInvokerRequestExecutor() {
+                @Override
                 protected void prepareConnection(HttpURLConnection con,
                                                  int contentLength) throws IOException {
                     super.prepareConnection(con, contentLength);
@@ -107,7 +144,8 @@ public class HttpProtocol extends AbstractProxyProtocol {
             httpProxyFactoryBean.setHttpInvokerRequestExecutor(httpInvokerRequestExecutor);
         } else if ("commons".equals(client)) {
             HttpComponentsHttpInvokerRequestExecutor httpInvokerRequestExecutor = new HttpComponentsHttpInvokerRequestExecutor();
-            httpInvokerRequestExecutor.setReadTimeout(url.getParameter(Constants.CONNECT_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT));
+            httpInvokerRequestExecutor.setReadTimeout(url.getParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT));
+            httpInvokerRequestExecutor.setConnectTimeout(url.getParameter(Constants.CONNECT_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT));
             httpProxyFactoryBean.setHttpInvokerRequestExecutor(httpInvokerRequestExecutor);
         } else {
             throw new IllegalStateException("Unsupported http protocol client " + client + ", only supported: simple, commons");
@@ -116,6 +154,7 @@ public class HttpProtocol extends AbstractProxyProtocol {
         return (T) httpProxyFactoryBean.getObject();
     }
 
+    @Override
     protected int getErrorCode(Throwable e) {
         if (e instanceof RemoteAccessException) {
             e = e.getCause();
@@ -135,6 +174,7 @@ public class HttpProtocol extends AbstractProxyProtocol {
 
     private class InternalHandler implements HttpHandler {
 
+        @Override
         public void handle(HttpServletRequest request, HttpServletResponse response)
                 throws IOException, ServletException {
             String uri = request.getRequestURI();
