@@ -353,16 +353,24 @@ public class UrlUtils {
         }
     }
 
+    /**
+     * 判断providerUrl是否匹配consumerUrl，也能用于判断override url是否应用于 provider url
+     * @param consumerUrl
+     * @param providerUrl
+     * @return
+     */
     public static boolean isMatch(URL consumerUrl, URL providerUrl) {
         String consumerInterface = consumerUrl.getServiceInterface();
         String providerInterface = providerUrl.getServiceInterface();
+        //interface必须一致 或者consumerUrl的interface为*
         if (!(Constants.ANY_VALUE.equals(consumerInterface) || StringUtils.isEquals(consumerInterface, providerInterface)))
             return false;
-
+        //catalog必须一致，或者与不存在的默认值一致
         if (!isMatchCategory(providerUrl.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY),
                 consumerUrl.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY))) {
             return false;
         }
+        //provider的enable属性必须为true，consumer的enable不能为*
         if (!providerUrl.getParameter(Constants.ENABLED_KEY, true)
                 && !Constants.ANY_VALUE.equals(consumerUrl.getParameter(Constants.ENABLED_KEY))) {
             return false;
@@ -375,6 +383,7 @@ public class UrlUtils {
         String providerGroup = providerUrl.getParameter(Constants.GROUP_KEY);
         String providerVersion = providerUrl.getParameter(Constants.VERSION_KEY);
         String providerClassifier = providerUrl.getParameter(Constants.CLASSIFIER_KEY, Constants.ANY_VALUE);
+        //group,version,classifier需一致，或者consumer对应属性为*
         return (Constants.ANY_VALUE.equals(consumerGroup) || StringUtils.isEquals(consumerGroup, providerGroup) || StringUtils.isContains(consumerGroup, providerGroup))
                 && (Constants.ANY_VALUE.equals(consumerVersion) || StringUtils.isEquals(consumerVersion, providerVersion))
                 && (consumerClassifier == null || Constants.ANY_VALUE.equals(consumerClassifier) || StringUtils.isEquals(consumerClassifier, providerClassifier));

@@ -29,7 +29,7 @@ public interface ProxyFactory {
 
     /**
      * create proxy.
-     *
+     * invoker转换为代理
      * @param invoker
      * @return proxy
      */
@@ -38,6 +38,7 @@ public interface ProxyFactory {
 
     /**
      * create invoker.
+     * ref 转换为 invoker
      *
      * @param <T>
      * @param proxy

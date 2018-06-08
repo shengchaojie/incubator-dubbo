@@ -147,6 +147,8 @@ public class RegistryProtocol implements Protocol {
         // Subscribe the override data
         // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call the same service. Because the subscribed is cached key with the name of the service, it causes the subscription information to cover.
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
+        //构造监听器，用于provider url被修改时 重新发布exporter
+        //监听路径为 /dubbo/interface/configurations
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
@@ -366,9 +368,11 @@ public class RegistryProtocol implements Protocol {
                 return;
             }
 
+            //获取Configurator,用于改写provider的url
             List<Configurator> configurators = RegistryDirectory.toConfigurators(matchedUrls);
 
             final Invoker<?> invoker;
+            //originInvoker是服务器实际执行的ref，不需要发生改变，重新暴露改变的应该是remoting那一层的配置
             if (originInvoker instanceof InvokerDelegete) {
                 invoker = ((InvokerDelegete<?>) originInvoker).getInvoker();
             } else {
@@ -382,16 +386,24 @@ public class RegistryProtocol implements Protocol {
                 logger.warn(new IllegalStateException("error state, exporter should not be null"));
                 return;
             }
+            //这边currentUrl的意思应该是在zookeeper的url其实并没有变，但是经过override之后，实际服务提供者暴露的exporter配置发生了变化
             //The current, may have been merged many times
             URL currentUrl = exporter.getInvoker().getUrl();
             //Merged with this configuration
             URL newUrl = getConfigedInvokerUrl(configurators, originUrl);
             if (!currentUrl.equals(newUrl)) {
+                //重新进行本地暴露
                 RegistryProtocol.this.doChangeLocalExport(originInvoker, newUrl);
                 logger.info("exported provider url changed, origin url: " + originUrl + ", old export url: " + currentUrl + ", new export url: " + newUrl);
             }
         }
 
+        /**
+         * 根据currentSubscribe过滤出有效的configuratorUrls
+         * @param configuratorUrls
+         * @param currentSubscribe
+         * @return
+         */
         private List<URL> getMatchedUrls(List<URL> configuratorUrls, URL currentSubscribe) {
             List<URL> result = new ArrayList<URL>();
             for (URL url : configuratorUrls) {
