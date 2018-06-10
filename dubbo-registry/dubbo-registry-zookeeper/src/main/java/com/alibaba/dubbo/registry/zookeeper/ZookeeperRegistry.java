@@ -159,6 +159,8 @@ public class ZookeeperRegistry extends FailbackRegistry {
                                 child = URL.decode(child);
                                 if (!anyServices.contains(child)) {
                                     anyServices.add(child);
+                                    //如果consumer的interface为*，会订阅每一个url，会触发另一个分支的逻辑
+                                    //这里是用来对/dubbo下面提供者新增时的回调，相当于增量
                                     subscribe(url.setPath(child).addParameters(Constants.INTERFACE_KEY, child,
                                             Constants.CHECK_KEY, String.valueOf(false)), listener);
                                 }
@@ -168,16 +170,20 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     zkListener = listeners.get(listener);
                 }
                 zkClient.create(root, false);
+                //添加监听器会返回子节点集合
                 List<String> services = zkClient.addChildListener(root, zkListener);
                 if (services != null && !services.isEmpty()) {
                     for (String service : services) {
                         service = URL.decode(service);
                         anyServices.add(service);
+                        //如果consumer的interface为*，会订阅每一个url，会触发另一个分支的逻辑
+                        //这里的逻辑只执行一次，一次全量
                         subscribe(url.setPath(service).addParameters(Constants.INTERFACE_KEY, service,
                                 Constants.CHECK_KEY, String.valueOf(false)), listener);
                     }
                 }
             } else {
+                //这边是针对明确interface的订阅逻辑
                 List<URL> urls = new ArrayList<URL>();
                 for (String path : toCategoriesPath(url)) {
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
@@ -187,6 +193,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     }
                     ChildListener zkListener = listeners.get(listener);
                     if (zkListener == null) {
+                        //封装回调逻辑
                         listeners.putIfAbsent(listener, new ChildListener() {
                             @Override
                             public void childChanged(String parentPath, List<String> currentChilds) {
@@ -195,12 +202,16 @@ public class ZookeeperRegistry extends FailbackRegistry {
                         });
                         zkListener = listeners.get(listener);
                     }
+                    //创建节点
                     zkClient.create(path, false);
+                    //增加回调
                     List<String> children = zkClient.addChildListener(path, zkListener);
                     if (children != null) {
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
+                //如果有子节点，直接进行触发一次，对应AbstractRegsitry的lookup方法
+                //意思就是第一次订阅，如果订阅目录存在子节点，直接会触发一次
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {
