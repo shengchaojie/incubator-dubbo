@@ -51,7 +51,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * AbstractRegistry. (SPI, Prototype, ThreadSafe)
- *
+ * 主要实现url 对应提供者的缓存
+ * 以及基础register，unregister,subscribe，unsubscribe,notify的逻辑
  */
 public abstract class AbstractRegistry implements Registry {
 
@@ -70,6 +71,7 @@ public abstract class AbstractRegistry implements Registry {
     private final AtomicLong lastCacheChanged = new AtomicLong();
     private final Set<URL> registered = new ConcurrentHashSet<URL>();
     private final ConcurrentMap<URL, Set<NotifyListener>> subscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
+    //主要保存提供者url，作为缓存
     private final ConcurrentMap<URL, Map<String, List<URL>>> notified = new ConcurrentHashMap<URL, Map<String, List<URL>>>();
     private URL registryUrl;
     // Local disk cache file
@@ -245,12 +247,14 @@ public abstract class AbstractRegistry implements Registry {
             }
         } else {
             final AtomicReference<List<URL>> reference = new AtomicReference<List<URL>>();
+            //注册监听器，用于刷新本地reference
             NotifyListener listener = new NotifyListener() {
                 @Override
                 public void notify(List<URL> urls) {
                     reference.set(urls);
                 }
             };
+            //第一次会保证等待通知？？？也没有阻塞
             subscribe(url, listener); // Subscribe logic guarantees the first notify to return
             List<URL> urls = reference.get();
             if (urls != null && !urls.isEmpty()) {
@@ -322,6 +326,7 @@ public abstract class AbstractRegistry implements Registry {
         }
     }
 
+    //与注册中心锻炼后，但是注册和订阅会在本地有备份，进行复原
     protected void recover() throws Exception {
         // register
         Set<URL> recoverRegistered = new HashSet<URL>(getRegistered());
@@ -348,12 +353,14 @@ public abstract class AbstractRegistry implements Registry {
         }
     }
 
+    //通过传入改变的urls，选择subscribe匹配的NotifyListener进行触发
     protected void notify(List<URL> urls) {
         if (urls == null || urls.isEmpty()) return;
 
         for (Map.Entry<URL, Set<NotifyListener>> entry : getSubscribed().entrySet()) {
             URL url = entry.getKey();
 
+            //这边用第一个进行判断，应该是url都是对应统一zk目录，也就是统一接口
             if (!UrlUtils.isMatch(url, urls.get(0))) {
                 continue;
             }
@@ -387,6 +394,7 @@ public abstract class AbstractRegistry implements Registry {
             logger.info("Notify urls for subscribe url " + url + ", urls: " + urls);
         }
         Map<String, List<URL>> result = new HashMap<String, List<URL>>();
+        //根据url的category进行分类
         for (URL u : urls) {
             if (UrlUtils.isMatch(url, u)) {
                 String category = u.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY);
@@ -409,8 +417,11 @@ public abstract class AbstractRegistry implements Registry {
         for (Map.Entry<String, List<URL>> entry : result.entrySet()) {
             String category = entry.getKey();
             List<URL> categoryList = entry.getValue();
+            //对notified内容进行覆盖，相当于会保存上一次的通知
             categoryNotified.put(category, categoryList);
+            //每次通知后会刷新本地缓存
             saveProperties(url);
+            //进行listener回调，每种category的url分别回调一次
             listener.notify(categoryList);
         }
     }

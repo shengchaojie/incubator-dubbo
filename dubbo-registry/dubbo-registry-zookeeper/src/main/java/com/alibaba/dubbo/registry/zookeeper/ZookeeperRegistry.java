@@ -48,6 +48,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
 
     private final static String DEFAULT_ROOT = "dubbo";
 
+    //zookeeper根节点名字
     private final String root;
 
     private final Set<String> anyServices = new ConcurrentHashSet<String>();
@@ -61,12 +62,15 @@ public class ZookeeperRegistry extends FailbackRegistry {
         if (url.isAnyHost()) {
             throw new IllegalStateException("registry address == null");
         }
+        //如果不进行配置，默认dubbo根目录就是/dubbo
         String group = url.getParameter(Constants.GROUP_KEY, DEFAULT_ROOT);
         if (!group.startsWith(Constants.PATH_SEPARATOR)) {
             group = Constants.PATH_SEPARATOR + group;
         }
         this.root = group;
         zkClient = zookeeperTransporter.connect(url);
+        //zookeeper添加重连回调，会触发recover方法，进行失败任务重试
+        //为什么FailbackRegistry都是用线程安全的集合，因为在这里存在线程竞争资源
         zkClient.addStateListener(new StateListener() {
             @Override
             public void stateChanged(int state) {
@@ -108,6 +112,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
         }
     }
 
+    /**
+     * 注册的逻辑，就是在zookeeper创建节点，节点路径为toUrlPath(url)
+     * 具体格式为 /{group}/{interfaceName}/{category}/{url.toFullString}
+     * DYNAMIC_KEY表示是否创建永久节点，true表示不是，断开连接后会消失，所以需要进行recover
+     * @param url
+     */
     @Override
     protected void doRegister(URL url) {
         try {
@@ -117,6 +127,10 @@ public class ZookeeperRegistry extends FailbackRegistry {
         }
     }
 
+    /**
+     * 取消注册，就是删除那个节点
+     * @param url
+     */
     @Override
     protected void doUnregister(URL url) {
         try {
@@ -269,6 +283,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
         return toServicePath(url) + Constants.PATH_SEPARATOR + url.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY);
     }
 
+    /**
+     * 将url转换为zookeeper中的路径
+     * 格式为 /{group}/{interfaceName}/{category}/{url.toFullString}
+     * @param url
+     * @return
+     */
     private String toUrlPath(URL url) {
         return toCategoryPath(url) + Constants.PATH_SEPARATOR + URL.encode(url.toFullString());
     }

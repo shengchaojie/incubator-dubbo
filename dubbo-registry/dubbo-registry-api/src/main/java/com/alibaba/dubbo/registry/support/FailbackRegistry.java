@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * FailbackRegistry. (SPI, Prototype, ThreadSafe)
- *
+ * 提供对failedRegistered，failedUnregistered，failedSubscribed，failedUnsubscribed，failedNotified提供失败重试的机制
  */
 public abstract class FailbackRegistry extends AbstractRegistry {
 
@@ -66,6 +66,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     public FailbackRegistry(URL url) {
         super(url);
         this.retryPeriod = url.getParameter(Constants.REGISTRY_RETRY_PERIOD_KEY, Constants.DEFAULT_REGISTRY_RETRY_PERIOD);
+        //重试的定时线程，使用future用于取消
         this.retryFuture = retryExecutor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -112,6 +113,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         listeners.add(listener);
     }
 
+    //移除失败取消订阅时，会同是移除失败订阅和失败通知内相同的url
     private void removeFailedSubscribed(URL url, NotifyListener listener) {
         Set<NotifyListener> listeners = failedSubscribed.get(url);
         if (listeners != null) {
@@ -127,21 +129,30 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         }
     }
 
+    /**
+     * register行为，提供者使用
+     * 在AbstractRegistry的基础上，增加失败重试机制
+     * @param url
+     */
     @Override
     public void register(URL url) {
         super.register(url);
+        //这里成功，会删除failedRegistered，failedUnregistered中的url
         failedRegistered.remove(url);
         failedUnregistered.remove(url);
         try {
             // Sending a registration request to the server side
+            //具体register逻辑交给子类实现
             doRegister(url);
         } catch (Exception e) {
             Throwable t = e;
 
             // If the startup detection is opened, the Exception is thrown directly.
+            //如果注册中心或者提供者url的check为false的话，跳过抛出异常
             boolean check = getUrl().getParameter(Constants.CHECK_KEY, true)
                     && url.getParameter(Constants.CHECK_KEY, true)
                     && !Constants.CONSUMER_PROTOCOL.equals(url.getProtocol());
+            //如果是注册的时候，抛出这个异常，那么也会忽略，只打日志
             boolean skipFailback = t instanceof SkipFailbackWrapperException;
             if (check || skipFailback) {
                 if (skipFailback) {
@@ -153,6 +164,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             }
 
             // Record a failed registration request to a failed list, retry regularly
+            //加入到失败重试集合
             failedRegistered.add(url);
         }
     }
@@ -203,6 +215,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
                 logger.error("Failed to subscribe " + url + ", Using cached list: " + urls + " from cache file: " + getUrl().getParameter(Constants.FILE_KEY, System.getProperty("user.home") + "/dubbo-registry-" + url.getHost() + ".cache") + ", cause: " + t.getMessage(), t);
             } else {
                 // If the startup detection is opened, the Exception is thrown directly.
+                //如果注册中心或者消费者配置了check=false，那么订阅失败，不会抛出异常，只打日志
                 boolean check = getUrl().getParameter(Constants.CHECK_KEY, true)
                         && url.getParameter(Constants.CHECK_KEY, true);
                 boolean skipFailback = t instanceof SkipFailbackWrapperException;
@@ -271,6 +284,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
                 failedNotified.putIfAbsent(url, new ConcurrentHashMap<NotifyListener, List<URL>>());
                 listeners = failedNotified.get(url);
             }
+            //通知失败，不会抛异常，只会加入到重试集合
             listeners.put(listener, urls);
             logger.error("Failed to notify for subscribe " + url + ", waiting for retry, cause: " + t.getMessage(), t);
         }
@@ -280,6 +294,11 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         super.notify(url, listener, urls);
     }
 
+    /**
+     * 通过把父类的registry和subscribe的内容加入到失败集合中
+     * recover的逻辑由这个类的失败重试线程来执行
+     * @throws Exception
+     */
     @Override
     protected void recover() throws Exception {
         // register
@@ -307,6 +326,10 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         }
     }
 
+    /**
+     * 失败重试线程的具体逻辑封装
+     * 就是进行定时重新触发对应操作
+     */
     // Retry the failed actions
     protected void retry() {
         if (!failedRegistered.isEmpty()) {
@@ -442,15 +465,21 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     public void destroy() {
         super.destroy();
         try {
+            //销毁时取消这个重试任务
             retryFuture.cancel(true);
         } catch (Throwable t) {
             logger.warn(t.getMessage(), t);
         }
+        //销毁线程池
         ExecutorUtil.gracefulShutdown(retryExecutor, retryPeriod);
     }
 
     // ==== Template method ====
 
+    /**
+     * 这些逻辑交给子类实现
+     * @param url
+     */
     protected abstract void doRegister(URL url);
 
     protected abstract void doUnregister(URL url);
