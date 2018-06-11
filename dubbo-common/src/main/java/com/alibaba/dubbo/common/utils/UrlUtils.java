@@ -355,6 +355,7 @@ public class UrlUtils {
 
     /**
      * 判断providerUrl是否匹配consumerUrl，也能用于判断override url是否应用于 provider url
+     * 这里没说protocol需要匹配
      * @param consumerUrl
      * @param providerUrl
      * @return

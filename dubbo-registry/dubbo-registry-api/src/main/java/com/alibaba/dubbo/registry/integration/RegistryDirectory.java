@@ -55,7 +55,8 @@ import java.util.Set;
 
 /**
  * RegistryDirectory
- *
+ * 用于查找当前接口的提供者列表，返回具体invokers
+ * 使用了zookeeper监听机制，所以这个列表会随着提供者上下线动态变化
  */
 public class RegistryDirectory<T> extends AbstractDirectory<T> implements NotifyListener {
 
@@ -96,13 +97,13 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     private volatile Set<URL> cachedInvokerUrls; // The initial value is null and the midway may be assigned to null, please use the local variable reference
 
     public RegistryDirectory(Class<T> serviceType, URL url) {
-        super(url);
+        super(url);//url为consumer的url
         if (serviceType == null)
             throw new IllegalArgumentException("service type is null.");
         if (url.getServiceKey() == null || url.getServiceKey().length() == 0)
             throw new IllegalArgumentException("registry serviceKey is null.");
         this.serviceType = serviceType;
-        this.serviceKey = url.getServiceKey();
+        this.serviceKey = url.getServiceKey();// group/interface:version
         this.queryMap = StringUtils.parseQueryString(url.getParameterAndDecoded(Constants.REFER_KEY));
         this.overrideDirectoryUrl = this.directoryUrl = url.setPath(url.getServiceInterface()).clearParameters().addParameters(queryMap).removeParameter(Constants.MONITOR_KEY);
         String group = directoryUrl.getParameter(Constants.GROUP_KEY, "");

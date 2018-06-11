@@ -185,6 +185,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
             } else {
                 //这边是针对明确interface的订阅逻辑
                 List<URL> urls = new ArrayList<URL>();
+                //针对每种category路径进行监听
                 for (String path : toCategoriesPath(url)) {
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
                     if (listeners == null) {
@@ -237,6 +238,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
         }
     }
 
+    /**
+     * 查找消费者url 对应 提供者url实现
+     * 这边的url为消费者url
+     * @param url
+     * @return
+     */
     @Override
     public List<URL> lookup(URL url) {
         if (url == null) {
@@ -244,12 +251,14 @@ public class ZookeeperRegistry extends FailbackRegistry {
         }
         try {
             List<String> providers = new ArrayList<String>();
+            //返回inteface下面所有category的url
             for (String path : toCategoriesPath(url)) {
                 List<String> children = zkClient.getChildren(path);
                 if (children != null) {
                     providers.addAll(children);
                 }
             }
+            //返回匹配的url
             return toUrlsWithoutEmpty(url, providers);
         } catch (Throwable e) {
             throw new RpcException("Failed to lookup " + url + " from zookeeper " + getUrl() + ", cause: " + e.getMessage(), e);
@@ -275,6 +284,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
         return toRootDir() + URL.encode(name);
     }
 
+    /**
+     * 将一个url转换为多个category路径 用于监听
+     *
+     * @param url
+     * @return
+     */
     private String[] toCategoriesPath(URL url) {
         String[] categories;
         if (Constants.ANY_VALUE.equals(url.getParameter(Constants.CATEGORY_KEY))) {
@@ -290,6 +305,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
         return paths;
     }
 
+    /**
+     * 将url转换为zookeeper中的路径
+     * 格式为 /{group}/{interface}/{category}路径
+     * @param url
+     * @return
+     */
     private String toCategoryPath(URL url) {
         return toServicePath(url) + Constants.PATH_SEPARATOR + url.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY);
     }
@@ -311,6 +332,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
                 provider = URL.decode(provider);
                 if (provider.contains("://")) {
                     URL url = URL.valueOf(provider);
+                    //核心匹配逻辑
                     if (UrlUtils.isMatch(consumer, url)) {
                         urls.add(url);
                     }
