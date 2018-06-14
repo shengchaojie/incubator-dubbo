@@ -183,9 +183,11 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public synchronized void notify(List<URL> urls) {
+        //这里的通知会一次性传递所有的url？不是改变的？
         List<URL> invokerUrls = new ArrayList<URL>();
         List<URL> routerUrls = new ArrayList<URL>();
         List<URL> configuratorUrls = new ArrayList<URL>();
+        //对url进行分类
         for (URL url : urls) {
             String protocol = url.getProtocol();
             String category = url.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY);
@@ -202,10 +204,12 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             }
         }
         // configurators
+        //刷新configuratorUrls
         if (configuratorUrls != null && !configuratorUrls.isEmpty()) {
             this.configurators = toConfigurators(configuratorUrls);
         }
         // routers
+        //刷新routers
         if (routerUrls != null && !routerUrls.isEmpty()) {
             List<Router> routers = toRouters(routerUrls);
             if (routers != null) { // null - do nothing
@@ -215,12 +219,14 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         List<Configurator> localConfigurators = this.configurators; // local reference
         // merge override parameters
         this.overrideDirectoryUrl = directoryUrl;
+        //override这个overrideDirectoryUrl什么用？
         if (localConfigurators != null && !localConfigurators.isEmpty()) {
             for (Configurator configurator : localConfigurators) {
                 this.overrideDirectoryUrl = configurator.configure(overrideDirectoryUrl);
             }
         }
         // providers
+        //刷新invokers的暴露配置，invoker本身不用变
         refreshInvoker(invokerUrls);
     }
 
@@ -236,22 +242,28 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     private void refreshInvoker(List<URL> invokerUrls) {
         if (invokerUrls != null && invokerUrls.size() == 1 && invokerUrls.get(0) != null
                 && Constants.EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
+            //只有一个protocol=empty的提供者?的情况下。directory设置为禁用
             this.forbidden = true; // Forbid to access
             this.methodInvokerMap = null; // Set the method invoker map to null
+            //摧毁客户端的对等调用invoker
             destroyAllInvokers(); // Close all invokers
         } else {
             this.forbidden = false; // Allow to access
             Map<String, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap; // local reference
             if (invokerUrls.isEmpty() && this.cachedInvokerUrls != null) {
+                //invokerUrls为空使用缓存的invokers
                 invokerUrls.addAll(this.cachedInvokerUrls);
             } else {
+                //更新缓存
                 this.cachedInvokerUrls = new HashSet<URL>();
                 this.cachedInvokerUrls.addAll(invokerUrls);//Cached invoker urls, convenient for comparison
             }
             if (invokerUrls.isEmpty()) {
                 return;
             }
+            //把url转换为invoker
             Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
+            //把newUrlInvokerMap转换为和method为key的map
             Map<String, List<Invoker<T>>> newMethodInvokerMap = toMethodInvokers(newUrlInvokerMap); // Change method name to map Invoker Map
             // state change
             // If the calculation is wrong, it is not processed.
@@ -342,6 +354,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             return newUrlInvokerMap;
         }
         Set<String> keys = new HashSet<String>();
+        //获取客户端需要的协议
         String queryProtocols = this.queryMap.get(Constants.PROTOCOL_KEY);
         for (URL providerUrl : urls) {
             // If protocol is configured at the reference side, only the matching protocol is selected
@@ -354,18 +367,22 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                         break;
                     }
                 }
+                //协议不匹配 跳过这个url
                 if (!accept) {
                     continue;
                 }
             }
+            //协议为空，跳过
             if (Constants.EMPTY_PROTOCOL.equals(providerUrl.getProtocol())) {
                 continue;
             }
+            //协议不支持 跳过
             if (!ExtensionLoader.getExtensionLoader(Protocol.class).hasExtension(providerUrl.getProtocol())) {
                 logger.error(new IllegalStateException("Unsupported protocol " + providerUrl.getProtocol() + " in notified url: " + providerUrl + " from registry " + getUrl().getAddress() + " to consumer " + NetUtils.getLocalHost()
                         + ", supported protocol: " + ExtensionLoader.getExtensionLoader(Protocol.class).getSupportedExtensions()));
                 continue;
             }
+            //对provider url进行override
             URL url = mergeUrl(providerUrl);
 
             String key = url.toFullString(); // The parameter urls are sorted
@@ -376,6 +393,8 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             // Cache key is url that does not merge with consumer side parameters, regardless of how the consumer combines parameters, if the server url changes, then refer again
             Map<String, Invoker<T>> localUrlInvokerMap = this.urlInvokerMap; // local reference
             Invoker<T> invoker = localUrlInvokerMap == null ? null : localUrlInvokerMap.get(key);
+            //判断缓存中是否存在overrider后url对应的invoker
+            //不存在创建
             if (invoker == null) { // Not in the cache, refer again
                 try {
                     boolean enabled = true;
@@ -385,6 +404,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                         enabled = url.getParameter(Constants.ENABLED_KEY, true);
                     }
                     if (enabled) {
+                        //创建invoker
                         invoker = new InvokerDelegate<T>(protocol.refer(serviceType, url), url, providerUrl);
                     }
                 } catch (Throwable t) {
