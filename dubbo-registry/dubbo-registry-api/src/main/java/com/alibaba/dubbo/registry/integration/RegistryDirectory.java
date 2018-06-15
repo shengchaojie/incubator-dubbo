@@ -183,7 +183,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public synchronized void notify(List<URL> urls) {
-        //这里的通知会一次性传递所有的url？不是改变的？
+        //这里的通知会一次性传递对应监听目录下所有的url
         List<URL> invokerUrls = new ArrayList<URL>();
         List<URL> routerUrls = new ArrayList<URL>();
         List<URL> configuratorUrls = new ArrayList<URL>();
@@ -250,6 +250,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         } else {
             this.forbidden = false; // Allow to access
             Map<String, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap; // local reference
+            //因为通知的url可能只改变了router或者configurator，但是对应invoker配置还是需要被更改的
             if (invokerUrls.isEmpty() && this.cachedInvokerUrls != null) {
                 //invokerUrls为空使用缓存的invokers
                 invokerUrls.addAll(this.cachedInvokerUrls);
@@ -281,7 +282,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         }
     }
 
-    //将同一group的invokers通过cluster封装成一个clustet
+    //将同一group的invokers通过cluster封装成一个invoker
     private Map<String, List<Invoker<T>>> toMergeMethodInvokerMap(Map<String, List<Invoker<T>>> methodMap) {
         Map<String, List<Invoker<T>>> result = new HashMap<String, List<Invoker<T>>>();
         for (Map.Entry<String, List<Invoker<T>>> entry : methodMap.entrySet()) {
@@ -485,6 +486,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         Map<String, List<Invoker<T>>> newMethodInvokerMap = new HashMap<String, List<Invoker<T>>>();
         // According to the methods classification declared by the provider URL, the methods is compatible with the registry to execute the filtered methods
         List<Invoker<T>> invokersList = new ArrayList<Invoker<T>>();
+        //根据方法分类invokers
         if (invokersMap != null && invokersMap.size() > 0) {
             for (Invoker<T> invoker : invokersMap.values()) {
                 String parameter = invoker.getUrl().getParameter(Constants.METHODS_KEY);
@@ -507,6 +509,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 invokersList.add(invoker);
             }
         }
+        //设置一个通配方法，使用route过滤invokers
         List<Invoker<T>> newInvokersList = route(invokersList, null);
         newMethodInvokerMap.put(Constants.ANY_VALUE, newInvokersList);
         if (serviceMethods != null && serviceMethods.length > 0) {
@@ -515,12 +518,14 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 if (methodInvokers == null || methodInvokers.isEmpty()) {
                     methodInvokers = newInvokersList;
                 }
+                //需要对得到的methodInvokers进行route
                 newMethodInvokerMap.put(method, route(methodInvokers, method));
             }
         }
         // sort and unmodifiable
         for (String method : new HashSet<String>(newMethodInvokerMap.keySet())) {
             List<Invoker<T>> methodInvokers = newMethodInvokerMap.get(method);
+            //进行排序
             Collections.sort(methodInvokers, InvokerComparator.getComparator());
             newMethodInvokerMap.put(method, Collections.unmodifiableList(methodInvokers));
         }
