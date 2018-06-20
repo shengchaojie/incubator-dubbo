@@ -18,7 +18,13 @@ package com.alibaba.dubbo.remoting.zookeeper.curator;
 
 import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.common.utils.NetUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.api.CuratorWatcher;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.test.TestingServer;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -51,5 +57,21 @@ public class CuratorZookeeperClientTest {
     @After
     public void tearDown() throws Exception {
         zkServer.stop();
+    }
+
+    @Test
+    public void testListen() throws Exception {
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                .connectString("127.0.0.1:2181")
+                .retryPolicy(new RetryNTimes(1, 1000))
+                .connectionTimeoutMs(5000);
+        CuratorFramework client = builder.build();
+        client.getChildren().usingWatcher(new CuratorWatcher() {
+            @Override
+            public void process(WatchedEvent watchedEvent) throws Exception {
+                System.out.println(watchedEvent.getPath());
+            }
+        }).forPath("/test");
+
     }
 }
