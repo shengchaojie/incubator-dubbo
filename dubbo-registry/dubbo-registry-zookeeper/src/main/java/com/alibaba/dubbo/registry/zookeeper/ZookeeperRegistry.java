@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * ZookeeperRegistry
- *
+ * 通过Zookeeper API实现doRegister,doUnregister,doSubscribe,doUnsubscribe具体逻辑
  */
 public class ZookeeperRegistry extends FailbackRegistry {
 
