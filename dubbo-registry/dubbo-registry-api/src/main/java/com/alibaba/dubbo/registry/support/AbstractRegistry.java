@@ -354,13 +354,14 @@ public abstract class AbstractRegistry implements Registry {
     }
 
     //通过传入改变的urls，选择subscribe匹配的NotifyListener进行触发
+    //这里在构造函数时触发一次
     protected void notify(List<URL> urls) {
         if (urls == null || urls.isEmpty()) return;
 
         for (Map.Entry<URL, Set<NotifyListener>> entry : getSubscribed().entrySet()) {
             URL url = entry.getKey();
 
-            //这边用第一个进行判断，应该是url都是对应统一zk目录，也就是统一接口
+            //这边直接用第一个进行判断，应该是urls都是对应同一接口,因为传入的是zk下面同一接口节点下面的url节点
             if (!UrlUtils.isMatch(url, urls.get(0))) {
                 continue;
             }
@@ -378,6 +379,13 @@ public abstract class AbstractRegistry implements Registry {
         }
     }
 
+    /**
+     * 这个方法不会直接触发，被FailbackRegistry重载
+     * FailbackRegistry增加failback逻辑后，还是会调用这个方法
+     * @param url
+     * @param listener
+     * @param urls
+     */
     protected void notify(URL url, NotifyListener listener, List<URL> urls) {
         if (url == null) {
             throw new IllegalArgumentException("notify url == null");
@@ -409,6 +417,7 @@ public abstract class AbstractRegistry implements Registry {
         if (result.size() == 0) {
             return;
         }
+        //下面操作notified缓存
         Map<String, List<URL>> categoryNotified = notified.get(url);
         if (categoryNotified == null) {
             notified.putIfAbsent(url, new ConcurrentHashMap<String, List<URL>>());
