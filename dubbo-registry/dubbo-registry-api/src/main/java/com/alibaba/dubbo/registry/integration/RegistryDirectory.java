@@ -226,7 +226,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             }
         }
         // providers
-        //刷新invokers的暴露配置，invoker本身不用变
+        //刷新客户端对等invoker
         refreshInvoker(invokerUrls);
     }
 
