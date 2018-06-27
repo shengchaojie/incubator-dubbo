@@ -242,7 +242,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     private void refreshInvoker(List<URL> invokerUrls) {
         if (invokerUrls != null && invokerUrls.size() == 1 && invokerUrls.get(0) != null
                 && Constants.EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
-            //只有一个protocol=empty的提供者?的情况下。directory设置为禁用
+            //传入的url protocol = empty,directory设置为禁用
             this.forbidden = true; // Forbid to access
             this.methodInvokerMap = null; // Set the method invoker map to null
             //摧毁客户端的对等调用invoker
@@ -250,21 +250,22 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         } else {
             this.forbidden = false; // Allow to access
             Map<String, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap; // local reference
-            //因为通知的url可能只改变了router或者configurator，但是对应invoker配置还是需要被更改的
+            //invokerUrls为空，因为通知的url可能只改变了router或者configurator，提供者并没有变化，但是对应invoker配置还是需要被更改的
             if (invokerUrls.isEmpty() && this.cachedInvokerUrls != null) {
-                //invokerUrls为空使用缓存的invokers
+                //invokerUrls为空使用缓存的invokers urls，也就是上一次回调拿到invokers
                 invokerUrls.addAll(this.cachedInvokerUrls);
             } else {
                 //更新缓存
                 this.cachedInvokerUrls = new HashSet<URL>();
                 this.cachedInvokerUrls.addAll(invokerUrls);//Cached invoker urls, convenient for comparison
             }
+            //invokerUrls为空，中止
             if (invokerUrls.isEmpty()) {
                 return;
             }
-            //把url转换为invoker
+            //把url转换为invoker，已经存在的invoker不会重新创建
             Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
-            //把newUrlInvokerMap转换为和method为key的map
+            //把newUrlInvokerMap转换为methodInvokerMap
             Map<String, List<Invoker<T>>> newMethodInvokerMap = toMethodInvokers(newUrlInvokerMap); // Change method name to map Invoker Map
             // state change
             // If the calculation is wrong, it is not processed.
@@ -272,6 +273,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 logger.error(new IllegalStateException("urls to invokers error .invokerUrls.size :" + invokerUrls.size() + ", invoker.size :0. urls :" + invokerUrls.toString()));
                 return;
             }
+            //如果存在group配置，对method对应的invoker进行cluster伪装
             this.methodInvokerMap = multiGroup ? toMergeMethodInvokerMap(newMethodInvokerMap) : newMethodInvokerMap;
             this.urlInvokerMap = newUrlInvokerMap;
             try {
@@ -303,10 +305,12 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             } else if (groupMap.size() > 1) {
                 List<Invoker<T>> groupInvokers = new ArrayList<Invoker<T>>();
                 for (List<Invoker<T>> groupList : groupMap.values()) {
+                    //通过cluster把统一group的invoker伪装成一个，这边用的是StaticDirectory
                     groupInvokers.add(cluster.join(new StaticDirectory<T>(groupList)));
                 }
                 result.put(method, groupInvokers);
             } else {
+                //没有分组 就把原先所有invoker放进去
                 result.put(method, invokers);
             }
         }
