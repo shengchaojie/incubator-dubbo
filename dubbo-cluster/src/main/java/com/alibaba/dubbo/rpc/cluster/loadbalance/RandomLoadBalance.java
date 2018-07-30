@@ -46,6 +46,7 @@ public class RandomLoadBalance extends AbstractLoadBalance {
                 sameWeight = false;
             }
         }
+        //如果提供者权重不一样，加权随机
         if (totalWeight > 0 && !sameWeight) {
             // If (not every invoker has the same weight & at least one invoker's weight>0), select randomly based on totalWeight.
             int offset = random.nextInt(totalWeight);
@@ -57,6 +58,7 @@ public class RandomLoadBalance extends AbstractLoadBalance {
                 }
             }
         }
+        //如果提供者权重都一样，普通随机
         // If all invokers have the same weight value or totalWeight=0, return evenly.
         return invokers.get(random.nextInt(length));
     }

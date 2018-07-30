@@ -60,6 +60,7 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
             sequence = sequences.get(key);
         }
         int currentSequence = sequence.getAndIncrement();
+        //如果每个提供者权重不一样，采用加权轮训
         if (maxWeight > 0 && minWeight < maxWeight) {
             int mod = currentSequence % weightSum;
             for (int i = 0; i < maxWeight; i++) {
@@ -76,6 +77,7 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
                 }
             }
         }
+        //每个服务提供者权重一样，就是普通轮训
         // Round robin
         return invokers.get(currentSequence % length);
     }

@@ -30,6 +30,7 @@ import java.util.List;
  */
 public abstract class AbstractLoadBalance implements LoadBalance {
 
+    //用于预热
     static int calculateWarmupWeight(int uptime, int warmup, int weight) {
         int ww = (int) ((float) uptime / ((float) warmup / (float) weight));
         return ww < 1 ? 1 : (ww > weight ? weight : ww);
@@ -39,13 +40,16 @@ public abstract class AbstractLoadBalance implements LoadBalance {
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) {
         if (invokers == null || invokers.isEmpty())
             return null;
+        //如果只有一个提供者直接返回
         if (invokers.size() == 1)
             return invokers.get(0);
         return doSelect(invokers, url, invocation);
     }
 
+    //让子类实现doSelect
     protected abstract <T> Invoker<T> doSelect(List<Invoker<T>> invokers, URL url, Invocation invocation);
 
+    //计算预热权重
     protected int getWeight(Invoker<?> invoker, Invocation invocation) {
         int weight = invoker.getUrl().getMethodParameter(invocation.getMethodName(), Constants.WEIGHT_KEY, Constants.DEFAULT_WEIGHT);
         if (weight > 0) {
