@@ -70,8 +70,11 @@ public class Transporters {
         } else if (handlers.length == 1) {
             handler = handlers[0];
         } else {
+            //多个handler封装成ChannelHandlerDispatcher，会依次进行调用，
+            //毕竟这是dubbo的handler，要转换为netty的handler，链式调用需要自己实现
             handler = new ChannelHandlerDispatcher(handlers);
         }
+        //SPI
         return getTransporter().connect(url, handler);
     }
 

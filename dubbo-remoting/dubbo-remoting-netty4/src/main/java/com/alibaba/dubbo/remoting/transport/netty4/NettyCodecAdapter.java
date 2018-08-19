@@ -96,6 +96,7 @@ final class NettyCodecAdapter {
                     } catch (IOException e) {
                         throw e;
                     }
+                    //解决粘包闭包问题
                     if (msg == Codec2.DecodeResult.NEED_MORE_INPUT) {
                         message.readerIndex(saveReaderIndex);
                         break;

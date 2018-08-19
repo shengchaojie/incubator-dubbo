@@ -105,7 +105,9 @@ public class Exchangers {
         if (handler == null) {
             throw new IllegalArgumentException("handler == null");
         }
+        //如果没有配置codec，使用exchange的codec，不知道什么场景会用到
         url = url.addParameterIfAbsent(Constants.CODEC_KEY, "exchange");
+        //使用SPI选择Exchange调用connect方法生成ExchangeClient
         return getExchanger(url).connect(url, handler);
     }
 

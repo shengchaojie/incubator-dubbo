@@ -30,7 +30,7 @@ import java.util.List;
  */
 public abstract class AbstractLoadBalance implements LoadBalance {
 
-    //用于预热
+    //用于计算预热权重
     static int calculateWarmupWeight(int uptime, int warmup, int weight) {
         int ww = (int) ((float) uptime / ((float) warmup / (float) weight));
         return ww < 1 ? 1 : (ww > weight ? weight : ww);
@@ -40,7 +40,7 @@ public abstract class AbstractLoadBalance implements LoadBalance {
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) {
         if (invokers == null || invokers.isEmpty())
             return null;
-        //如果只有一个提供者直接返回
+        //如果只有一个提供者直接返回，预热失效
         if (invokers.size() == 1)
             return invokers.get(0);
         return doSelect(invokers, url, invocation);
@@ -55,7 +55,9 @@ public abstract class AbstractLoadBalance implements LoadBalance {
         if (weight > 0) {
             long timestamp = invoker.getUrl().getParameter(Constants.REMOTE_TIMESTAMP_KEY, 0L);
             if (timestamp > 0L) {
+                //提供者在线时长
                 int uptime = (int) (System.currentTimeMillis() - timestamp);
+                //预热时间默认10分钟
                 int warmup = invoker.getUrl().getParameter(Constants.WARMUP_KEY, Constants.DEFAULT_WARMUP);
                 if (uptime > 0 && uptime < warmup) {
                     weight = calculateWarmupWeight(uptime, warmup, weight);

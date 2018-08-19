@@ -111,6 +111,7 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         req.setVersion(Version.getProtocolVersion());
         req.setTwoWay(true);
         req.setData(request);
+        //send之前注册到DefaultFuture
         DefaultFuture future = new DefaultFuture(channel, req, timeout);
         try {
             channel.send(req);
@@ -118,6 +119,7 @@ final class HeaderExchangeChannel implements ExchangeChannel {
             future.cancel();
             throw e;
         }
+        //返回future
         return future;
     }
 

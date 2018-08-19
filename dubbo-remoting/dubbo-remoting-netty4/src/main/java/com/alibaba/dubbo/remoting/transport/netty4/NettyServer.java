@@ -74,6 +74,7 @@ public class NettyServer extends AbstractServer implements Server {
                 new DefaultThreadFactory("NettyServerWorker", true));
 
         final NettyServerHandler nettyServerHandler = new NettyServerHandler(getUrl(), this);
+        //channels指向NettyServerHandler内的channels
         channels = nettyServerHandler.getChannels();
 
         bootstrap.group(bossGroup, workerGroup)

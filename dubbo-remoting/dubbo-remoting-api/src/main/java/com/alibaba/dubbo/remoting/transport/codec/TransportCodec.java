@@ -38,6 +38,7 @@ public class TransportCodec extends AbstractCodec {
     @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object message) throws IOException {
         OutputStream output = new ChannelBufferOutputStream(buffer);
+        //序列化
         ObjectOutput objectOutput = getSerialization(channel).serialize(channel.getUrl(), output);
         encodeData(channel, objectOutput, message);
         objectOutput.flushBuffer();
@@ -50,6 +51,7 @@ public class TransportCodec extends AbstractCodec {
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
         InputStream input = new ChannelBufferInputStream(buffer);
         ObjectInput objectInput = getSerialization(channel).deserialize(channel.getUrl(), input);
+        //反序列化
         Object object = decodeData(channel, objectInput);
         if (objectInput instanceof Cleanable) {
             ((Cleanable) objectInput).cleanup();

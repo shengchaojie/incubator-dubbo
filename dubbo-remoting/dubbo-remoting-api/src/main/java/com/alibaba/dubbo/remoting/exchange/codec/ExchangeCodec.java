@@ -80,6 +80,7 @@ public class ExchangeCodec extends TelnetCodec {
     @Override
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
         int readable = buffer.readableBytes();
+        //读取头部16个字节
         byte[] header = new byte[Math.min(readable, HEADER_LENGTH)];
         buffer.readBytes(header);
         return decode(channel, buffer, readable, header);
@@ -88,6 +89,7 @@ public class ExchangeCodec extends TelnetCodec {
     @Override
     protected Object decode(Channel channel, ChannelBuffer buffer, int readable, byte[] header) throws IOException {
         // check magic number.
+        //0和1 2个字节，魔数，如果不是dubbo协议，进入这个逻辑
         if (readable > 0 && header[0] != MAGIC_HIGH
                 || readable > 1 && header[1] != MAGIC_LOW) {
             int length = header.length;
@@ -95,37 +97,47 @@ public class ExchangeCodec extends TelnetCodec {
                 header = Bytes.copyOf(header, readable);
                 buffer.readBytes(header, length, readable - length);
             }
+            //如果魔数不在头部最开始的字节
             for (int i = 1; i < header.length - 1; i++) {
                 if (header[i] == MAGIC_HIGH && header[i + 1] == MAGIC_LOW) {
+                    //删除掉魔数之前的字节
                     buffer.readerIndex(buffer.readerIndex() - header.length + i);
+                    //得到新的头部，？？长度变短了啊。
                     header = Bytes.copyOf(header, i);
                     break;
                 }
             }
+            //如果没有发现dubbo协议的魔数，进入父类的逻辑，也就是telnet
             return super.decode(channel, buffer, readable, header);
         }
         // check length.
+        // 如果可读的数据小于header长度，返回NEED_MORE_INPUT，用于解决半包
         if (readable < HEADER_LENGTH) {
             return DecodeResult.NEED_MORE_INPUT;
         }
-
+        // header第12-15字节存储了报文长度，一共4个字节
         // get data length.
         int len = Bytes.bytes2int(header, 12);
+        //检查报文长度是否满足要求，默认8M(2的23次方)，
         checkPayload(channel, len);
-
+        //tt为总字节数
         int tt = len + HEADER_LENGTH;
+        //如果小于，返回NEED_MORE_INPUT，用于解决半包
         if (readable < tt) {
             return DecodeResult.NEED_MORE_INPUT;
         }
 
         // limit input stream.
+        // 只读取这个报文体长度的字节
         ChannelBufferInputStream is = new ChannelBufferInputStream(buffer, len);
 
         try {
+            //解析报文体
             return decodeBody(channel, is, header);
         } finally {
             if (is.available() > 0) {
                 try {
+                    //跳过多余的字节，dubbo应该都是一个一个报文发送，配置了tcpnodelay
                     if (logger.isWarnEnabled()) {
                         logger.warn("Skip input stream " + is.available());
                     }
@@ -137,29 +149,56 @@ public class ExchangeCodec extends TelnetCodec {
         }
     }
 
+    /**
+     * 报文结构
+     * 头部16个字节
+     * 0-1 magiccode
+     * 2 左4位 序列化方式  右4位 请求方式
+     * 3 状态码 返回有用
+     * 4-11 请求id
+     * 12-15 报文体长度
+     * 16-n 报文体
+     * @param channel
+     * @param is
+     * @param header
+     * @return
+     * @throws IOException
+     */
     protected Object decodeBody(Channel channel, InputStream is, byte[] header) throws IOException {
+        //第2个字节，保存的是序列化方式和请求方式
+        //右边4位保存序列化方式
+        //左边4位保存请求方式
         byte flag = header[2], proto = (byte) (flag & SERIALIZATION_MASK);
         Serialization s = CodecSupport.getSerialization(channel.getUrl(), proto);
         ObjectInput in = s.deserialize(channel.getUrl(), is);
         // get request id.
+        //4到11保存request id，long类型
         long id = Bytes.bytes2long(header, 4);
-        if ((flag & FLAG_REQUEST) == 0) {
+        //还是第三位
+        if ((flag & FLAG_REQUEST) == 0) {//不是request请求，是response返回
             // decode response.
             Response res = new Response(id);
+            //是event事件
             if ((flag & FLAG_EVENT) != 0) {
+                //设置为心跳事件
                 res.setEvent(Response.HEARTBEAT_EVENT);
             }
             // get status.
+            // 第3位 保存了状态
             byte status = header[3];
             res.setStatus(status);
+            //20代表OK
             if (status == Response.OK) {
                 try {
                     Object data;
                     if (res.isHeartbeat()) {
+                        //废弃了
                         data = decodeHeartbeatData(channel, in);
                     } else if (res.isEvent()) {
+                        //反序列化获取对象
                         data = decodeEventData(channel, in);
                     } else {
+                        //反序列化获取对象
                         data = decodeResponseData(channel, in, getRequestData(id));
                     }
                     res.setResult(data);

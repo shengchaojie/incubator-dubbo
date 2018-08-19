@@ -44,6 +44,10 @@ public class ChannelHandlers {
     }
 
     protected ChannelHandler wrapInternal(ChannelHandler handler, URL url) {
+        //MultiMessageHandler 增加用于request是MultiMessage的逻辑
+        //HeartbeatHandler 增加处理心跳request的逻辑
+        //Dispatcher 增加设置IO模型的逻辑
+        //最后才到我们的业务处理handler
         return new MultiMessageHandler(new HeartbeatHandler(ExtensionLoader.getExtensionLoader(Dispatcher.class)
                 .getAdaptiveExtension().dispatch(handler, url)));
     }

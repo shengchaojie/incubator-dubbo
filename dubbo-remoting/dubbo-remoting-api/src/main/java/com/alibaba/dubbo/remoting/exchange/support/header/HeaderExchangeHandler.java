@@ -143,6 +143,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         }
         if (message instanceof Request) {
             Request request = (Request) message;
+            //在invoker那边已经注册到DefaultFuture，这边的sent只是调用future的send方法，设置sent时间
             DefaultFuture.sent(channel, request);
         }
         if (exception != null) {
@@ -177,7 +178,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                 }
             } else if (message instanceof Response) {
                 handleResponse(channel, (Response) message);
-            } else if (message instanceof String) {
+            } else if (message instanceof String) {//处理telnet
                 if (isClientSide(channel)) {
                     Exception e = new Exception("Dubbo client can not supported string message: " + message + " in channel: " + channel + ", url: " + channel.getUrl());
                     logger.error(e.getMessage(), e);

@@ -75,12 +75,18 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
                 .deserialize(channel.getUrl(), input);
         
         byte flag = in.readByte();
+        //返回报文体第一个字节表示返回的类型
         switch (flag) {
+            //返回为空
             case DubboCodec.RESPONSE_NULL_VALUE:
                 break;
+            //返回有内容
             case DubboCodec.RESPONSE_VALUE:
                 try {
+                    //从invocation获取返回类型
                     Type[] returnType = RpcUtils.getReturnTypes(invocation);
+                    //通过反序列化得到response内容
+                    //两个返回类型是什么？？
                     setValue(returnType == null || returnType.length == 0 ? in.readObject() :
                             (returnType.length == 1 ? in.readObject((Class<?>) returnType[0])
                                     : in.readObject((Class<?>) returnType[0], returnType[1])));
@@ -88,9 +94,11 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
                     throw new IOException(StringUtils.toString("Read response data failed.", e));
                 }
                 break;
+            //返回的是异常
             case DubboCodec.RESPONSE_WITH_EXCEPTION:
                 try {
                     Object obj = in.readObject();
+                    //返回的异常没有继承异常的父类Throwable。。。
                     if (obj instanceof Throwable == false)
                         throw new IOException("Response data error, expect Throwable, but get " + obj);
                     setException((Throwable) obj);
@@ -98,6 +106,7 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
                     throw new IOException(StringUtils.toString("Read response data failed.", e));
                 }
                 break;
+            //返回值为空，但是有上下文带过来
             case DubboCodec.RESPONSE_NULL_VALUE_WITH_ATTACHMENTS:
                 try {
                     setAttachments((Map<String, String>) in.readObject(Map.class));
@@ -105,8 +114,10 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
                     throw new IOException(StringUtils.toString("Read response data failed.", e));
                 }
                 break;
+            //返回结果并且有上下文
             case DubboCodec.RESPONSE_VALUE_WITH_ATTACHMENTS:
                 try {
+                    //可以从下面代码发现，报文体先是返回结果，再是返回的上下文
                     Type[] returnType = RpcUtils.getReturnTypes(invocation);
                     setValue(returnType == null || returnType.length == 0 ? in.readObject() :
                             (returnType.length == 1 ? in.readObject((Class<?>) returnType[0])
@@ -116,6 +127,8 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
                     throw new IOException(StringUtils.toString("Read response data failed.", e));
                 }
                 break;
+            //返回异常和上下文
+            //先是异常，再是上下文
             case DubboCodec.RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS:
                 try {
                     Object obj = in.readObject();

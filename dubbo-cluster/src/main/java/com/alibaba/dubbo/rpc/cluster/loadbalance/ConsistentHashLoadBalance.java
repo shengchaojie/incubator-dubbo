@@ -48,7 +48,7 @@ public class ConsistentHashLoadBalance extends AbstractLoadBalance {
         int identityHashCode = System.identityHashCode(invokers);
         ConsistentHashSelector<T> selector = (ConsistentHashSelector<T>) selectors.get(key);
         if (selector == null || selector.identityHashCode != identityHashCode) {
-            //生成虚拟节点，只有新增或删除的那一段会出现问题
+            //生成新的虚拟节点，只有新增或删除的那一段会出现问题
             selectors.put(key, new ConsistentHashSelector<T>(invokers, methodName, identityHashCode));
             selector = (ConsistentHashSelector<T>) selectors.get(key);
         }
@@ -106,8 +106,10 @@ public class ConsistentHashLoadBalance extends AbstractLoadBalance {
         }
 
         private Invoker<T> selectForKey(long hash) {
+            //取大于hash的下一个节点
             Map.Entry<Long, Invoker<T>> entry = virtualInvokers.tailMap(hash, true).firstEntry();
             if (entry == null) {
+                //hash大于最后一个节点，取第一个节点
                 entry = virtualInvokers.firstEntry();
             }
             return entry.getValue();

@@ -90,23 +90,28 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
         ObjectInput in = CodecSupport.getSerialization(channel.getUrl(), serializationType)
                 .deserialize(channel.getUrl(), input);
 
+        //先是dubbo版本号
         String dubboVersion = in.readUTF();
         request.setVersion(dubboVersion);
         setAttachment(Constants.DUBBO_VERSION_KEY, dubboVersion);
-
+        //path也就是接口
         setAttachment(Constants.PATH_KEY, in.readUTF());
+        //接口版本
         setAttachment(Constants.VERSION_KEY, in.readUTF());
-
+        //方法名
         setMethodName(in.readUTF());
         try {
             Object[] args;
             Class<?>[] pts;
+            //读取请求参数描述信息
             String desc = in.readUTF();
             if (desc.length() == 0) {
                 pts = DubboCodec.EMPTY_CLASS_ARRAY;
                 args = DubboCodec.EMPTY_OBJECT_ARRAY;
             } else {
+                //反射获取所有参数类型
                 pts = ReflectUtils.desc2classArray(desc);
+                //循环反序列化获取参数
                 args = new Object[pts.length];
                 for (int i = 0; i < args.length; i++) {
                     try {
@@ -119,7 +124,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
                 }
             }
             setParameterTypes(pts);
-
+            //获取上下文
             Map<String, String> map = (Map<String, String>) in.readObject(Map.class);
             if (map != null && map.size() > 0) {
                 Map<String, String> attachment = getAttachments();
@@ -130,6 +135,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
                 setAttachments(attachment);
             }
             //decode argument ,may be callback
+            //处理callback逻辑。。。暂时不想看 不怎么用到，意思应该是叫我们服务端主动掉客户端方法
             for (int i = 0; i < args.length; i++) {
                 args[i] = decodeInvocationArgument(channel, this, pts, i, args[i]);
             }
