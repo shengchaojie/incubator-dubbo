@@ -63,6 +63,7 @@ public class DubboProtocol extends AbstractProtocol {
     private static final String IS_CALLBACK_SERVICE_INVOKE = "_isCallBackServiceInvoke";
     private static DubboProtocol INSTANCE;
     private final Map<String, ExchangeServer> serverMap = new ConcurrentHashMap<String, ExchangeServer>(); // <host:port,Exchanger>
+    //用于连接共享模式
     private final Map<String, ReferenceCountExchangeClient> referenceClientMap = new ConcurrentHashMap<String, ReferenceCountExchangeClient>(); // <host:port,Exchanger>
     private final ConcurrentMap<String, LazyConnectExchangeClient> ghostClientMap = new ConcurrentHashMap<String, LazyConnectExchangeClient>();
     private final ConcurrentMap<String, Object> locks = new ConcurrentHashMap<String, Object>();
@@ -339,11 +340,17 @@ public class DubboProtocol extends AbstractProtocol {
         return invoker;
     }
 
+    /**
+     * 获取rpc调用客户端
+     * @param url
+     * @return
+     */
     private ExchangeClient[] getClients(URL url) {
         // whether to share connection
         boolean service_share_connect = false;
         int connections = url.getParameter(Constants.CONNECTIONS_KEY, 0);
         // if not configured, connection is shared, otherwise, one connection for one service
+        // 如果client没有配置connections，那么会共用一个client，connections设置为1
         if (connections == 0) {
             service_share_connect = true;
             connections = 1;
@@ -351,9 +358,11 @@ public class DubboProtocol extends AbstractProtocol {
 
         ExchangeClient[] clients = new ExchangeClient[connections];
         for (int i = 0; i < clients.length; i++) {
-            if (service_share_connect) {
+            if (service_share_connect) {//共享连接
+                //如果是共享client，即使是多连接，也会对应到同一个client
                 clients[i] = getSharedClient(url);
             } else {
+                //如果不是共享模式，每次都会创建新的client，新的连接
                 clients[i] = initClient(url);
             }
         }
@@ -361,17 +370,19 @@ public class DubboProtocol extends AbstractProtocol {
     }
 
     /**
+     * 连接到同一台提供者服务器的接口，可以共用一个client
      * Get shared connection
      */
     private ExchangeClient getSharedClient(URL url) {
         //注意key是远程的ip:port 也就是连接同一台提供者client会共享
         String key = url.getAddress();
         ReferenceCountExchangeClient client = referenceClientMap.get(key);
-        if (client != null) {
+        if (client != null) {//如果该共享client已经存在
             if (!client.isClosed()) {
+                //ReferenceCountExchangeClient，引用数加1
                 client.incrementAndGetCount();
                 return client;
-            } else {
+            } else {//close就从referenceClientMap移除
                 referenceClientMap.remove(key);
             }
         }
@@ -384,6 +395,8 @@ public class DubboProtocol extends AbstractProtocol {
             }
 
             ExchangeClient exchangeClient = initClient(url);
+            //共享的client会被ReferenceCountExchangeClient装饰，记录同时被多少服务使用，
+            //这个引用数主要用于关闭时判断是否需要真的关闭
             client = new ReferenceCountExchangeClient(exchangeClient, ghostClientMap);
             referenceClientMap.put(key, client);
             ghostClientMap.remove(key);
@@ -416,7 +429,7 @@ public class DubboProtocol extends AbstractProtocol {
         ExchangeClient client;
         try {
             // connection should be lazy
-            // 判断连接是否是延迟的，默认不是
+            // 判断是否使用延迟客户端，会在实际调用的时候在初始化rpc客户端，默认不会
             if (url.getParameter(Constants.LAZY_CONNECT_KEY, false)) {
                 client = new LazyConnectExchangeClient(url, requestHandler);
             } else {

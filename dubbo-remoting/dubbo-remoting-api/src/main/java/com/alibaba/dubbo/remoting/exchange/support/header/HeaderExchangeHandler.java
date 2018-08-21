@@ -177,6 +177,8 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                     }
                 }
             } else if (message instanceof Response) {
+                //处理返回结果
+                //设置到DefaultFuture
                 handleResponse(channel, (Response) message);
             } else if (message instanceof String) {//处理telnet
                 if (isClientSide(channel)) {

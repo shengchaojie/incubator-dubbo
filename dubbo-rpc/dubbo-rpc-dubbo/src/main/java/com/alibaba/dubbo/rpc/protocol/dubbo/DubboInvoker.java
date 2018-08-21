@@ -75,26 +75,30 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         if (clients.length == 1) {
             currentClient = clients[0];
         } else {
+            //每次调用，轮训使用client
             currentClient = clients[index.getAndIncrement() % clients.length];
         }
         try {
             boolean isAsync = RpcUtils.isAsync(getUrl(), invocation);
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
+            //取方法配置的timeout
             int timeout = getUrl().getMethodParameter(methodName, Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
-            if (isOneway) {
+            if (isOneway) {//oneway 忽略结果
+                //取方法配置的isSent，sent属性用来判断是否需要在timeout时间内发送成功
                 boolean isSent = getUrl().getMethodParameter(methodName, Constants.SENT_KEY, false);
                 //oneway不需要在意结果
                 currentClient.send(inv, isSent);
                 RpcContext.getContext().setFuture(null);
                 return new RpcResult();
-            } else if (isAsync) {
+            } else if (isAsync) {//异步发送，忽略结果，但是可以有回调
                 ResponseFuture future = currentClient.request(inv, timeout);
-                //异步调用，设置到context,通过FutureFIiltr进行回调
+                //异步调用，设置到context,通过FutureFilter进行回调
                 RpcContext.getContext().setFuture(new FutureAdapter<Object>(future));
+                //异步只是直接返回空的结果，但是response还是会受到的
                 return new RpcResult();
-            } else {
+            } else {//同步发送，等待结果返回
                 RpcContext.getContext().setFuture(null);
-                //通过get阻塞住，知道返回结果
+                //通过get阻塞住，直到返回结果
                 return (Result) currentClient.request(inv, timeout).get();
             }
         } catch (TimeoutException e) {

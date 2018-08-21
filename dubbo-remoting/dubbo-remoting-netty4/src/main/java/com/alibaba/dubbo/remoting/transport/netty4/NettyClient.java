@@ -52,12 +52,13 @@ public class NettyClient extends AbstractClient {
     private volatile Channel channel; // volatile, please copy reference to use
 
     public NettyClient(final URL url, final ChannelHandler handler) throws RemotingException {
-        //wrapChannelHandler,通过装饰者模式，增加其他功能
+        //wrapChannelHandler,在AbstractClient中，用于设置默认线程池实现以及默认线程名
         super(url, wrapChannelHandler(url, handler));
     }
 
     @Override
     protected void doOpen() throws Throwable {
+        //把Dubbo的ChannelHandler封装成netty的ChannelHandler
         final NettyClientHandler nettyClientHandler = new NettyClientHandler(getUrl(), this);
         bootstrap = new Bootstrap();
         bootstrap.group(nioEventLoopGroup)
@@ -77,6 +78,7 @@ public class NettyClient extends AbstractClient {
 
             @Override
             protected void initChannel(Channel ch) throws Exception {
+                //把codec封装到Netty的ChannelHandler
                 NettyCodecAdapter adapter = new NettyCodecAdapter(getCodec(), getUrl(), NettyClient.this);
                 ch.pipeline()//.addLast("logging",new LoggingHandler(LogLevel.INFO))//for debug
                         .addLast("decoder", adapter.getDecoder())
@@ -109,6 +111,7 @@ public class NettyClient extends AbstractClient {
                         }
                     }
                 } finally {
+                    //判断client是否被关闭
                     if (NettyClient.this.isClosed()) {
                         try {
                             if (logger.isInfoEnabled()) {
@@ -120,6 +123,8 @@ public class NettyClient extends AbstractClient {
                             NettyChannel.removeChannelIfDisconnected(newChannel);
                         }
                     } else {
+                        //没有被关闭设置新的channel
+                        //一个NettyClient只能对应一个Channel
                         NettyClient.this.channel = newChannel;
                     }
                 }
@@ -159,6 +164,7 @@ public class NettyClient extends AbstractClient {
         Channel c = channel;
         if (c == null || !c.isActive())
             return null;
+        //这边会对channel进行封装，转换为dubbo框架的NettyChannel
         return NettyChannel.getOrAddChannel(c, getUrl(), this);
     }
 

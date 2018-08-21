@@ -44,6 +44,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * 主要是有一个定时连接的任务
  * AbstractClient
  */
 public abstract class AbstractClient extends AbstractEndpoint implements Client {

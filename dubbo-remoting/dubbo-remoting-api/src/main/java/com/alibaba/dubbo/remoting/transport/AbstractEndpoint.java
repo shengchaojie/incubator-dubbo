@@ -28,6 +28,7 @@ import com.alibaba.dubbo.remoting.Codec2;
 import com.alibaba.dubbo.remoting.transport.codec.CodecAdapter;
 
 /**
+ * 设置codec以及超时
  * AbstractEndpoint
  */
 public abstract class AbstractEndpoint extends AbstractPeer implements Resetable {

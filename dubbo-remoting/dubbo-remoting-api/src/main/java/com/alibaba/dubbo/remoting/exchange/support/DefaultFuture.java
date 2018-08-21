@@ -91,8 +91,14 @@ public class DefaultFuture implements ResponseFuture {
         }
     }
 
+    /**
+     * HeaderExchangeHandler会调用这个方法设置response
+     * @param channel
+     * @param response
+     */
     public static void received(Channel channel, Response response) {
         try {
+            //response的id和 request的应该一致
             DefaultFuture future = FUTURES.remove(response.getId());
             if (future != null) {
                 future.doReceived(response);
@@ -122,9 +128,10 @@ public class DefaultFuture implements ResponseFuture {
             long start = System.currentTimeMillis();
             lock.lock();
             try {
-                while (!isDone()) {
+                while (!isDone()) {//response没有返回的话会一致阻塞
                     done.await(timeout, TimeUnit.MILLISECONDS);
                     if (isDone() || System.currentTimeMillis() - start > timeout) {
+                        //超时了
                         break;
                     }
                 }
@@ -133,7 +140,7 @@ public class DefaultFuture implements ResponseFuture {
             } finally {
                 lock.unlock();
             }
-            if (!isDone()) {
+            if (!isDone()) {//超时的话跑出异常
                 throw new TimeoutException(sent > 0, channel, getTimeoutMessage(false));
             }
         }
@@ -251,6 +258,11 @@ public class DefaultFuture implements ResponseFuture {
         sent = System.currentTimeMillis();
     }
 
+
+    /**
+     * 调用这个方法设置response
+     * @param res
+     */
     private void doReceived(Response res) {
         lock.lock();
         try {

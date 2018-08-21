@@ -107,11 +107,13 @@ final class HeaderExchangeChannel implements ExchangeChannel {
             throw new RemotingException(this.getLocalAddress(), null, "Failed to send request " + request + ", cause: The channel " + this + " is closed!");
         }
         // create request.
+        //注意new Request()会生成一个id，response也会对应返回同样的
         Request req = new Request();
         req.setVersion(Version.getProtocolVersion());
         req.setTwoWay(true);
         req.setData(request);
         //send之前注册到DefaultFuture
+        //会在请求完成后把response也设置到DefaultFuture
         DefaultFuture future = new DefaultFuture(channel, req, timeout);
         try {
             channel.send(req);
