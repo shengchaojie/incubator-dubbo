@@ -117,6 +117,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         url = ExecutorUtil.setThreadName(url, CLIENT_THREAD_POOL_NAME);
         //设置默认的业务线程池类型
         url = url.addParameterIfAbsent(Constants.THREADPOOL_KEY, Constants.DEFAULT_CLIENT_THREADPOOL);
+        //wrap，装饰ChannelHandler，提供多个功能
         return ChannelHandlers.wrap(handler, url);
     }
 

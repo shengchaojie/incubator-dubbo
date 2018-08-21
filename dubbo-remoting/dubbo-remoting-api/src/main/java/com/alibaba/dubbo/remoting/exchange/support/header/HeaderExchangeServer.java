@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
+ * 和client一样，心跳逻辑
  * ExchangeServerImpl
  */
 public class HeaderExchangeServer implements ExchangeServer {
