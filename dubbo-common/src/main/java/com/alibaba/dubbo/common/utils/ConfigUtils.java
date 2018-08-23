@@ -291,6 +291,10 @@ public class ConfigUtils {
         return properties;
     }
 
+    /**
+     * 通过MXBean获取java进程号
+     * @return
+     */
     public static int getPid() {
         if (PID < 0) {
             try {

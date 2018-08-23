@@ -46,6 +46,7 @@ import java.util.concurrent.TimeoutException;
 
 
 /**
+ * 用于访问redis数据库
  * RedisProtocol
  */
 public class RedisProtocol extends AbstractProtocol {

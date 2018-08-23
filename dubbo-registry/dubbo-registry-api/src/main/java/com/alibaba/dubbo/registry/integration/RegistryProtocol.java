@@ -30,15 +30,10 @@ import com.alibaba.dubbo.registry.Registry;
 import com.alibaba.dubbo.registry.RegistryFactory;
 import com.alibaba.dubbo.registry.RegistryService;
 import com.alibaba.dubbo.registry.support.ProviderConsumerRegTable;
-import com.alibaba.dubbo.rpc.Exporter;
-import com.alibaba.dubbo.rpc.Invoker;
-import com.alibaba.dubbo.rpc.Protocol;
-import com.alibaba.dubbo.rpc.ProxyFactory;
-import com.alibaba.dubbo.rpc.RpcException;
+import com.alibaba.dubbo.rpc.*;
 import com.alibaba.dubbo.rpc.cluster.Cluster;
 import com.alibaba.dubbo.rpc.cluster.Configurator;
 import com.alibaba.dubbo.rpc.protocol.InvokerWrapper;
-import com.sun.xml.internal.bind.v2.TODO;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,10 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static com.alibaba.dubbo.common.Constants.ACCEPT_FOREIGN_IP;
-import static com.alibaba.dubbo.common.Constants.QOS_ENABLE;
-import static com.alibaba.dubbo.common.Constants.QOS_PORT;
-import static com.alibaba.dubbo.common.Constants.VALIDATION_KEY;
+import static com.alibaba.dubbo.common.Constants.*;
 
 /**
  * RegistryProtocol

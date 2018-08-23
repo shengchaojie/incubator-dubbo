@@ -89,7 +89,7 @@ public class ExchangeCodec extends TelnetCodec {
     @Override
     protected Object decode(Channel channel, ChannelBuffer buffer, int readable, byte[] header) throws IOException {
         // check magic number.
-        //0和1 2个字节，魔数，如果不是dubbo协议，进入这个逻辑
+        //0和1 2个字节，魔数，如果不匹配，进入这个逻辑
         if (readable > 0 && header[0] != MAGIC_HIGH
                 || readable > 1 && header[1] != MAGIC_LOW) {
             int length = header.length;
@@ -100,14 +100,14 @@ public class ExchangeCodec extends TelnetCodec {
             //如果魔数不在头部最开始的字节
             for (int i = 1; i < header.length - 1; i++) {
                 if (header[i] == MAGIC_HIGH && header[i + 1] == MAGIC_LOW) {
-                    //删除掉魔数之前的字节
+                    //将readerindex定位到新的魔数开始
                     buffer.readerIndex(buffer.readerIndex() - header.length + i);
-                    //得到新的头部，？？长度变短了啊。
+                    //得到新的头部？？长度变短了啊。
                     header = Bytes.copyOf(header, i);
                     break;
                 }
             }
-            //如果没有发现dubbo协议的魔数，进入父类的逻辑，也就是telnet
+            //进入telnet解析逻辑
             return super.decode(channel, buffer, readable, header);
         }
         // check length.

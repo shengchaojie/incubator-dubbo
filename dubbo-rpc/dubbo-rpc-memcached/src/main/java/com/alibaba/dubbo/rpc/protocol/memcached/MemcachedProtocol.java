@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * 用于访问memcache数据库
  * MemcachedProtocol
  */
 public class MemcachedProtocol extends AbstractProtocol {

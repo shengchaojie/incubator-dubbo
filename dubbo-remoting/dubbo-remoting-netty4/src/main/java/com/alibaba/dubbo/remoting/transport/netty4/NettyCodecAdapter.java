@@ -98,6 +98,7 @@ final class NettyCodecAdapter {
                     }
                     //解决粘包闭包问题
                     if (msg == Codec2.DecodeResult.NEED_MORE_INPUT) {
+                        //设置为读取前的readerindex，相当于这部分数据下次还是会被读取
                         message.readerIndex(saveReaderIndex);
                         break;
                     } else {

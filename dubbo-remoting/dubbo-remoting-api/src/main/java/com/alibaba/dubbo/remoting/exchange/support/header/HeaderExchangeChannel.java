@@ -88,6 +88,7 @@ final class HeaderExchangeChannel implements ExchangeChannel {
                 || message instanceof String) {
             channel.send(message, sent);
         } else {
+            //如果message不是上面三种类型，封装成Request发送
             Request request = new Request();
             request.setVersion(Version.getProtocolVersion());
             request.setTwoWay(false);

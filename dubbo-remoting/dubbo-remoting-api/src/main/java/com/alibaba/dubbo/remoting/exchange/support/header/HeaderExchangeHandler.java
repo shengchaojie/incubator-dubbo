@@ -162,6 +162,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
     public void received(Channel channel, Object message) throws RemotingException {
         channel.setAttribute(KEY_READ_TIMESTAMP, System.currentTimeMillis());
         ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
+        //request 和 response 会在这里先处理，不会直接到子handler，比如DubboProtocol的requestHandler
         try {
             if (message instanceof Request) {
                 // handle request.
@@ -170,7 +171,9 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                     handlerEvent(channel, request);
                 } else {
                     if (request.isTwoWay()) {
+                        //处理request
                         Response response = handleRequest(exchangeChannel, request);
+                        //通过channel发送，还是会经过 netty pipeline
                         channel.send(response);
                     } else {
                         handler.received(exchangeChannel, request.getData());

@@ -22,6 +22,7 @@ import com.alibaba.dubbo.remoting.Dispatcher;
 
 /**
  * Direct dispatcher
+ * 全都在netty IO线程池执行
  */
 public class DirectDispatcher implements Dispatcher {
 

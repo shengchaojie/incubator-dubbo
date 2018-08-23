@@ -203,9 +203,9 @@
                     <missing>.project</missing>
                 </file>
             </activation>
-            <modules>
+            <!--<modules>
                 <module>dubbo-test</module>
-            </modules>
+            </modules>-->
         </profile>
         <profile>
             <id>hudson</id>
