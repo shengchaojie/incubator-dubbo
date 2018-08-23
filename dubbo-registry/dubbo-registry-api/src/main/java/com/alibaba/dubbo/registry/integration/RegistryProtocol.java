@@ -124,27 +124,27 @@ public class RegistryProtocol implements Protocol {
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
         //export invoker
-        //先进行本地暴露
+        //先进行远程协议本地暴露
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker);
 
-        //得到registryUrl，protocol变为具体的注册中心，而不是registry
+        //从registry协议转换为具体注册中心的协议，比如zookeeper
         URL registryUrl = getRegistryUrl(originInvoker);
 
         //registry provider
         //得到注册中心实例
         final Registry registry = getRegistry(originInvoker);
-        //对url进行处理，去除无用参数，得到provider url
+        //对export中的url进行处理，去除无用参数，得到实际的provider url，用于注册到注册中心
         final URL registedProviderUrl = getRegistedProviderUrl(originInvoker);
 
         //to judge to delay publish whether or not
-        //这个参数决定是否要延迟发布到registry，默认不延迟发布
-        //感觉register配置了false之后，要自己手动去注册中心暴露？？
+        //这个参数决定是否需要把url注册到注册中心
+        //配置在service标签上
         boolean register = registedProviderUrl.getParameter("register", true);
 
         ProviderConsumerRegTable.registerProvider(originInvoker, registryUrl, registedProviderUrl);
 
         if (register) {
-            //把provider url发布到注册中心
+            //把provider url注册到注册中心
             register(registryUrl, registedProviderUrl);
             ProviderConsumerRegTable.getProviderWrapper(originInvoker).setReg(true);
         }
@@ -175,6 +175,8 @@ public class RegistryProtocol implements Protocol {
                     //invoker对应provider url为getProviderUrl(originInvoker)
                     final Invoker<?> invokerDelegete = new InvokerDelegete<T>(originInvoker, getProviderUrl(originInvoker));
                     //protocol.export(invokerDelegete)会使用invokerDelegete的url进行暴露
+                    //ExporterChangeableWrapper用于可以动态替换Exporter
+                    //因为注册中心可以触发配置修改
                     exporter = new ExporterChangeableWrapper<T>((Exporter<T>) protocol.export(invokerDelegete), originInvoker);
                     bounds.put(key, exporter);
                 }

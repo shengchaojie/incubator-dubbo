@@ -28,6 +28,7 @@ import org.springframework.context.ApplicationContext;
 import java.util.Set;
 
 /**
+ * 扩展点实现支持放在Spring容器中
  * SpringExtensionFactory
  */
 public class SpringExtensionFactory implements ExtensionFactory {

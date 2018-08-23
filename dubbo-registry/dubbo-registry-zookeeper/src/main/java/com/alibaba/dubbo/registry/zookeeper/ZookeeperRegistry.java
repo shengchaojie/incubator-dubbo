@@ -144,6 +144,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
     protected void doSubscribe(final URL url, final NotifyListener listener) {
         try {
             if (Constants.ANY_VALUE.equals(url.getServiceInterface())) {
+                //如果监听的url的接口为*，那么就会监听
                 String root = toRootPath();
                 ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
                 if (listeners == null) {
@@ -170,9 +171,11 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     zkListener = listeners.get(listener);
                 }
                 zkClient.create(root, false);
-                //添加监听器会返回子节点集合
+                //添加监听器会返回当前子节点集合
+                //也就是所有接口节点集合
                 List<String> services = zkClient.addChildListener(root, zkListener);
                 if (services != null && !services.isEmpty()) {
+                    //对/dubbo下面每个接口目录设置监听
                     for (String service : services) {
                         service = URL.decode(service);
                         anyServices.add(service);
@@ -198,12 +201,13 @@ public class ZookeeperRegistry extends FailbackRegistry {
                         listeners.putIfAbsent(listener, new ChildListener() {
                             @Override
                             public void childChanged(String parentPath, List<String> currentChilds) {
+                                //回调notify
                                 ZookeeperRegistry.this.notify(url, listener, toUrlsWithEmpty(url, parentPath, currentChilds));
                             }
                         });
                         zkListener = listeners.get(listener);
                     }
-                    //创建节点
+                    //创建节点，永久
                     zkClient.create(path, false);
                     //增加回调
                     List<String> children = zkClient.addChildListener(path, zkListener);

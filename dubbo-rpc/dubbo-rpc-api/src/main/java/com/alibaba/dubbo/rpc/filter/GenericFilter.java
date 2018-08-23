@@ -51,6 +51,7 @@ public class GenericFilter implements Filter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation inv) throws RpcException {
+        //对泛化调用进行处理
         if (inv.getMethodName().equals(Constants.$INVOKE)
                 && inv.getArguments() != null
                 && inv.getArguments().length == 3

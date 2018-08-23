@@ -114,6 +114,11 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return service;
     }
 
+    /**
+     * 在上下文refresh之后再暴露
+     * refresh完成之后，eagerinit的bean都会初始化完成
+     * @param event
+     */
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         if (isDelay() && !isExported() && !isUnexported()) {
@@ -124,6 +129,12 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         }
     }
 
+    /**
+     * 是否延迟发布
+     * 延迟暴露到所有bean都加载完成
+     * 需要支持ApplicationListener的上下文才能delay
+     * @return
+     */
     private boolean isDelay() {
         Integer delay = getDelay();
         ProviderConfig provider = getProvider();

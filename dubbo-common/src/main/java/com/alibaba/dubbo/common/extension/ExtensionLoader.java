@@ -331,6 +331,7 @@ public class ExtensionLoader<T> {
             holder = cachedInstances.get(name);
         }
         Object instance = holder.get();
+        //如果缓存中不存在扩展点实例，创建扩展点实例
         if (instance == null) {
             synchronized (holder) {
                 instance = holder.get();
@@ -521,7 +522,7 @@ public class ExtensionLoader<T> {
 
     @SuppressWarnings("unchecked")
     private T createExtension(String name) {
-        //这里触发扫描扩展点文件
+        //这里触发扫描扩展点配置文件
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {
             //找不到spi实现，抛出特定异常
@@ -529,6 +530,8 @@ public class ExtensionLoader<T> {
         }
         try {
             //对spi name对应clazz进行实例化
+            //EXTENSION_INSTANCES里面保存的只是原始的实例
+            //cachedInstances内保存的是经过依赖注入以及包装的实例
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
@@ -590,6 +593,7 @@ public class ExtensionLoader<T> {
 
     private Map<String, Class<?>> getExtensionClasses() {
         Map<String, Class<?>> classes = cachedClasses.get();
+        //通过cachedClasses是否被设置，来判断是否进行过配置加载
         if (classes == null) {
             synchronized (cachedClasses) {
                 classes = cachedClasses.get();
@@ -781,16 +785,16 @@ public class ExtensionLoader<T> {
         }
     }
 
-    private Class<?> getAdaptiveExtensionClass() {
-        //如果没有初始化，触发初始化
-        getExtensionClasses();
-        //如果spi实现中含有适配类直接返回
-        if (cachedAdaptiveClass != null) {
-            return cachedAdaptiveClass;
+        private Class<?> getAdaptiveExtensionClass() {
+            //如果没有初始化，触发初始化
+            getExtensionClasses();
+            //如果spi实现中含有适配类直接返回
+            if (cachedAdaptiveClass != null) {
+                return cachedAdaptiveClass;
+            }
+            //如果spi实现没有提供适配类，那么通过字节码生成
+            return cachedAdaptiveClass = createAdaptiveExtensionClass();
         }
-        //如果spi实现没有提供适配类，那么通过字节码生成
-        return cachedAdaptiveClass = createAdaptiveExtensionClass();
-    }
 
     private Class<?> createAdaptiveExtensionClass() {
         //生成适配类的代码

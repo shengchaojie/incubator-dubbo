@@ -36,6 +36,7 @@ public class ConsumerContextFilter implements Filter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        //调用钱设置上下文
         RpcContext.getContext()
                 .setInvoker(invoker)
                 .setInvocation(invocation)
@@ -47,6 +48,7 @@ public class ConsumerContextFilter implements Filter {
         }
         try {
             RpcResult result = (RpcResult) invoker.invoke(invocation);
+            //调用结束设置返回的上下文
             RpcContext.getServerContext().setAttachments(result.getAttachments());
             return result;
         } finally {

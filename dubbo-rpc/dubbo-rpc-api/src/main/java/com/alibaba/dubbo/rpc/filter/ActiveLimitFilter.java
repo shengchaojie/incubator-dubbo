@@ -37,6 +37,7 @@ public class ActiveLimitFilter implements Filter {
         URL url = invoker.getUrl();
         String methodName = invocation.getMethodName();
         int max = invoker.getUrl().getMethodParameter(methodName, Constants.ACTIVES_KEY, 0);
+        //RpcStatus用于记录接口方法调用次数
         RpcStatus count = RpcStatus.getStatus(invoker.getUrl(), invocation.getMethodName());
         if (max > 0) {
             long timeout = invoker.getUrl().getMethodParameter(invocation.getMethodName(), Constants.TIMEOUT_KEY, 0);
@@ -47,6 +48,7 @@ public class ActiveLimitFilter implements Filter {
                 synchronized (count) {
                     while ((active = count.getActive()) >= max) {
                         try {
+                            //如果超过Active并发调用数，阻塞调用
                             count.wait(remain);
                         } catch (InterruptedException e) {
                         }

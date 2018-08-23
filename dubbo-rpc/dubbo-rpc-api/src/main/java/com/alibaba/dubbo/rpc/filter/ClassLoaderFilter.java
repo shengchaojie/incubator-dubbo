@@ -33,6 +33,7 @@ public class ClassLoaderFilter implements Filter {
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         ClassLoader ocl = Thread.currentThread().getContextClassLoader();
+        //设置classloader，用于父加载器加载的类去调用其他类加载器(不是它的父类)的类
         Thread.currentThread().setContextClassLoader(invoker.getInterface().getClassLoader());
         try {
             return invoker.invoke(invocation);

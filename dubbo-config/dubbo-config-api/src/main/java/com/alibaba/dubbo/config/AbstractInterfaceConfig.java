@@ -280,10 +280,12 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     protected void checkStubAndMock(Class<?> interfaceClass) {
         if (ConfigUtils.isNotEmpty(local)) {
             Class<?> localClass = ConfigUtils.isDefault(local) ? ReflectUtils.forName(interfaceClass.getName() + "Local") : ReflectUtils.forName(local);
+            //检查继承关系
             if (!interfaceClass.isAssignableFrom(localClass)) {
                 throw new IllegalStateException("The local implementation class " + localClass.getName() + " not implement interface " + interfaceClass.getName());
             }
             try {
+                //检查是否有以interfaceClass为参数的构造函数
                 ReflectUtils.findConstructor(localClass, interfaceClass);
             } catch (NoSuchMethodException e) {
                 throw new IllegalStateException("No such constructor \"public " + localClass.getSimpleName() + "(" + interfaceClass.getName() + ")\" in local implementation class " + localClass.getName());
@@ -291,10 +293,12 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         }
         if (ConfigUtils.isNotEmpty(stub)) {
             Class<?> localClass = ConfigUtils.isDefault(stub) ? ReflectUtils.forName(interfaceClass.getName() + "Stub") : ReflectUtils.forName(stub);
+            //检查继承关系
             if (!interfaceClass.isAssignableFrom(localClass)) {
                 throw new IllegalStateException("The local implementation class " + localClass.getName() + " not implement interface " + interfaceClass.getName());
             }
             try {
+                //检查是否有以interfaceClass为参数的构造函数
                 ReflectUtils.findConstructor(localClass, interfaceClass);
             } catch (NoSuchMethodException e) {
                 throw new IllegalStateException("No such constructor \"public " + localClass.getSimpleName() + "(" + interfaceClass.getName() + ")\" in local implementation class " + localClass.getName());
@@ -304,16 +308,21 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
             if (mock.startsWith(Constants.RETURN_PREFIX)) {
                 String value = mock.substring(Constants.RETURN_PREFIX.length());
                 try {
+                    //对mock表达式进行检查
                     MockInvoker.parseMockValue(value);
                 } catch (Exception e) {
                     throw new IllegalStateException("Illegal mock json value in <dubbo:service ... mock=\"" + mock + "\" />");
                 }
             } else {
+                //mock配置为true的话，会查找interfaceClass.getName() + "Mock"的类
+                //如果配置了其他类，就加载其他类
                 Class<?> mockClass = ConfigUtils.isDefault(mock) ? ReflectUtils.forName(interfaceClass.getName() + "Mock") : ReflectUtils.forName(mock);
+                //检查继承关系
                 if (!interfaceClass.isAssignableFrom(mockClass)) {
                     throw new IllegalStateException("The mock implementation class " + mockClass.getName() + " not implement interface " + interfaceClass.getName());
                 }
                 try {
+                    //检查是否有以interfaceClass为参数的构造函数
                     mockClass.getConstructor(new Class<?>[0]);
                 } catch (NoSuchMethodException e) {
                     throw new IllegalStateException("No such empty constructor \"public " + mockClass.getSimpleName() + "()\" in mock implementation class " + mockClass.getName());

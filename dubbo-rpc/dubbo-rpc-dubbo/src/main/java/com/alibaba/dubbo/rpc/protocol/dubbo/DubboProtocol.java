@@ -262,6 +262,7 @@ public class DubboProtocol extends AbstractProtocol {
         if (isServer) {
             //server只会启动一个
             ExchangeServer server = serverMap.get(key);
+            //如果是reexport，那么对server进行reset
             if (server == null) {
                 serverMap.put(key, createServer(url));
             } else {

@@ -105,6 +105,7 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
         try {
             if (url.hasParameter(Constants.THREADS_KEY)
                     && executor instanceof ThreadPoolExecutor && !executor.isShutdown()) {
+                //设置Dispatcher里的线程池
                 ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executor;
                 int threads = url.getParameter(Constants.THREADS_KEY, 0);
                 int max = threadPoolExecutor.getMaximumPoolSize();
