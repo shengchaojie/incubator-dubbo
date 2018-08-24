@@ -52,6 +52,7 @@ public class GenericImplFilter implements Filter {
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         String generic = invoker.getUrl().getParameter(Constants.GENERIC_KEY);
+        //普通方法调用提供者泛化实现
         if (ProtocolUtils.isGeneric(generic)
                 && !Constants.$INVOKE.equals(invocation.getMethodName())
                 && invocation instanceof RpcInvocation) {
@@ -145,6 +146,7 @@ public class GenericImplFilter implements Filter {
             return result;
         }
 
+        //泛化接口调用提供者实现
         if (invocation.getMethodName().equals(Constants.$INVOKE)
                 && invocation.getArguments() != null
                 && invocation.getArguments().length == 3

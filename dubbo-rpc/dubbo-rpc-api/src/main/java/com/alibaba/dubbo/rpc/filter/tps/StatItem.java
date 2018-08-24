@@ -18,6 +18,9 @@ package com.alibaba.dubbo.rpc.filter.tps;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 计数器算法
+ */
 class StatItem {
 
     private String name;
@@ -48,7 +51,9 @@ class StatItem {
         int value = token.get();
         boolean flag = false;
         while (value > 0 && !flag) {
+            //乐观锁增加计数
             flag = token.compareAndSet(value, value - 1);
+            //失败重新获取
             value = token.get();
         }
 

@@ -28,16 +28,20 @@ import com.alibaba.dubbo.rpc.filter.tps.DefaultTPSLimiter;
 import com.alibaba.dubbo.rpc.filter.tps.TPSLimiter;
 
 /**
+ * 用于限流
  * Limit TPS for either service or service's particular method
  */
 @Activate(group = Constants.PROVIDER, value = Constants.TPS_LIMIT_RATE_KEY)
 public class TpsLimitFilter implements Filter {
 
+    /**
+     * 针对每个接口维护一个计数器
+     */
     private final TPSLimiter tpsLimiter = new DefaultTPSLimiter();
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
-
+        //限流功能
         if (!tpsLimiter.isAllowable(invoker.getUrl(), invocation)) {
             throw new RpcException(
                     "Failed to invoke service " +

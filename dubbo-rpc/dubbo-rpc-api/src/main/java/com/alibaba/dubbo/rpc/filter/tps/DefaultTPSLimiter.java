@@ -25,6 +25,9 @@ import java.util.concurrent.ConcurrentMap;
 
 public class DefaultTPSLimiter implements TPSLimiter {
 
+    /**
+     *
+     */
     private final ConcurrentMap<String, StatItem> stats
             = new ConcurrentHashMap<String, StatItem>();
 
@@ -33,6 +36,7 @@ public class DefaultTPSLimiter implements TPSLimiter {
         int rate = url.getParameter(Constants.TPS_LIMIT_RATE_KEY, -1);
         long interval = url.getParameter(Constants.TPS_LIMIT_INTERVAL_KEY,
                 Constants.DEFAULT_TPS_LIMIT_INTERVAL);
+        //servicekey并没有和方法绑定，只能限流接口
         String serviceKey = url.getServiceKey();
         if (rate > 0) {
             StatItem statItem = stats.get(serviceKey);

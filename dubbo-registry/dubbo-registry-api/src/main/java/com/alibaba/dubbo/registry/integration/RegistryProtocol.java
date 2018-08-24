@@ -198,9 +198,12 @@ public class RegistryProtocol implements Protocol {
         if (exporter == null) {
             logger.warn(new IllegalStateException("error state, exporter should not be null"));
         } else {
-            //对invokerDelegete设置新的url
+            //originInvoker内部保存原先的url
+            //invokerDelegete中的url保存override后的url
             final Invoker<T> invokerDelegete = new InvokerDelegete<T>(originInvoker, newInvokerUrl);
             //采用新的url进行暴露
+            //protocol.export是Invoker接口，拿不到originInvoker，除非强转
+            //替换掉原先的exporter
             exporter.setExporter(protocol.export(invokerDelegete));
         }
     }
@@ -416,7 +419,8 @@ public class RegistryProtocol implements Protocol {
                 invoker = originInvoker;
             }
             //The origin invoker
-            //得到原始的provider url
+            //invoker内的url是registry协议的
+            //得到export中的provider url
             URL originUrl = RegistryProtocol.this.getProviderUrl(invoker);
             String key = getCacheKey(originInvoker);
             ExporterChangeableWrapper<?> exporter = bounds.get(key);
@@ -425,6 +429,7 @@ public class RegistryProtocol implements Protocol {
                 return;
             }
             //The current, may have been merged many times
+            //exporter.getInvoker()是InvokerDelegete
             //currentUrl对应invoker实际进行暴露的url配置，在多次override后会发生改变
             URL currentUrl = exporter.getInvoker().getUrl();
             //Merged with this configuration

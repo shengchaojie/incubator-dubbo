@@ -69,10 +69,12 @@ public abstract class AbstractConfigurator implements Configurator {
     }
 
     private URL configureIfMatch(String host, URL url) {
+        //host需要匹配
         if (Constants.ANYHOST_VALUE.equals(configuratorUrl.getHost()) || host.equals(configuratorUrl.getHost())) {
             String configApplication = configuratorUrl.getParameter(Constants.APPLICATION_KEY,
                     configuratorUrl.getUsername());
             String currentApplication = url.getParameter(Constants.APPLICATION_KEY, url.getUsername());
+            //application如果存在的话，需要匹配
             if (configApplication == null || Constants.ANY_VALUE.equals(configApplication)
                     || configApplication.equals(currentApplication)) {
                 Set<String> conditionKeys = new HashSet<String>();
@@ -85,12 +87,14 @@ public abstract class AbstractConfigurator implements Configurator {
                     String value = entry.getValue();
                     if (key.startsWith("~") || Constants.APPLICATION_KEY.equals(key) || Constants.SIDE_KEY.equals(key)) {
                         conditionKeys.add(key);
+                        //为什么满足下面条件，跳过url重配置？
                         if (value != null && !Constants.ANY_VALUE.equals(value)
                                 && !value.equals(url.getParameter(key.startsWith("~") ? key.substring(1) : key))) {
                             return url;
                         }
                     }
                 }
+                //conditionKeys中的key都不参与合并
                 return doConfigure(url, configuratorUrl.removeParameters(conditionKeys));
             }
         }

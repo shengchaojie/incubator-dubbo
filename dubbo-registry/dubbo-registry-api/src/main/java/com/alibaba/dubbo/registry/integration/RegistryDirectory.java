@@ -131,14 +131,18 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         List<Configurator> configurators = new ArrayList<Configurator>(urls.size());
         for (URL url : urls) {
             if (Constants.EMPTY_PROTOCOL.equals(url.getProtocol())) {
+                //empty的url代表清空所有override
                 configurators.clear();
                 break;
             }
             Map<String, String> override = new HashMap<String, String>(url.getParameters());
             //The anyhost parameter of override may be added automatically, it can't change the judgement of changing url
             override.remove(Constants.ANYHOST_KEY);
+            //override://0.0.0.0/ without parameters means clearing the override
+            //上面这个url，代表清空所有配置
             if (override.size() == 0) {
                 configurators.clear();
+                //但是只是清空之前的。。。
                 continue;
             }
             configurators.add(configuratorFactory.getConfigurator(url));
