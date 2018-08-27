@@ -34,6 +34,8 @@
     <bean id="demoService" class="com.alibaba.dubbo.demo.provider.DemoServiceImpl"/>
 
     <!-- declare the service interface to be exported -->
-    <dubbo:service interface="com.alibaba.dubbo.demo.DemoService" ref="demoService" />
+    <dubbo:service interface="com.alibaba.dubbo.demo.DemoService" ref="demoService" >
+            <dubbo:parameter key="tps" value="5" />
+    </dubbo:service>
 
 </beans>

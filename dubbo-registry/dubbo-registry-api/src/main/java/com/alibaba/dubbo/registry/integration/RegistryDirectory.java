@@ -224,12 +224,13 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         // merge override parameters
         this.overrideDirectoryUrl = directoryUrl;
         //override这个overrideDirectoryUrl什么用？
+        //用于mock....
         if (localConfigurators != null && !localConfigurators.isEmpty()) {
             for (Configurator configurator : localConfigurators) {
                 this.overrideDirectoryUrl = configurator.configure(overrideDirectoryUrl);
             }
         }
-        // providers
+        //providers
         //刷新客户端对等invoker
         refreshInvoker(invokerUrls);
     }
@@ -393,7 +394,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                         + ", supported protocol: " + ExtensionLoader.getExtensionLoader(Protocol.class).getSupportedExtensions()));
                 continue;
             }
-            //对provider url进行override
+            //对provider url进行override ,重点！！！
             URL url = mergeUrl(providerUrl);
 
             String key = url.toFullString(); // The parameter urls are sorted

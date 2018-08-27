@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 public class DefaultTPSLimiter implements TPSLimiter {
 
     /**
-     *
+     * 每个Service维护一个计数器
      */
     private final ConcurrentMap<String, StatItem> stats
             = new ConcurrentHashMap<String, StatItem>();

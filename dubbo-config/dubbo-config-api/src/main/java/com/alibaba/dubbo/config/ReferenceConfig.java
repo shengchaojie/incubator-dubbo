@@ -390,9 +390,11 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 }
             }
 
-            if (urls.size() == 1) {
+            if (urls.size() == 1) {//只存在一个注册中心，或者是直连url
                 invoker = refprotocol.refer(interfaceClass, urls.get(0));
             } else {
+                //多个url
+                //可能是registry url 也可能是直连
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
@@ -403,6 +405,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 }
                 if (registryURL != null) { // registry url is available
                     // use AvailableCluster only when register's cluster is available
+                    //如果存在注册中心url，相当于有两次集群调用
+                    //第一次默认走AvailableCluster
                     URL u = registryURL.addParameter(Constants.CLUSTER_KEY, AvailableCluster.NAME);
                     invoker = cluster.join(new StaticDirectory(u, invokers));
                 } else { // not a registry url

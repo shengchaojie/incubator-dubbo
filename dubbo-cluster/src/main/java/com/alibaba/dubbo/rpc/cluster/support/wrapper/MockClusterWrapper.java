@@ -23,7 +23,7 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 
 /**
  * mock impl
- *
+ * Cluster SPI 包装
  */
 public class MockClusterWrapper implements Cluster {
 

@@ -85,23 +85,30 @@ final public class MockInvoker<T> implements Invoker<T> {
 
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
+        //获取配置为methodName.mock的配置
         String mock = getUrl().getParameter(invocation.getMethodName() + "." + Constants.MOCK_KEY);
         if (invocation instanceof RpcInvocation) {
             ((RpcInvocation) invocation).setInvoker(this);
         }
         if (StringUtils.isBlank(mock)) {
+            //从url中提取mock配置
             mock = getUrl().getParameter(Constants.MOCK_KEY);
         }
 
         if (StringUtils.isBlank(mock)) {
             throw new RpcException(new IllegalAccessException("mock can not be null. url :" + url));
         }
+        //对mock字段进行处理
         mock = normallizeMock(URL.decode(mock));
         if (Constants.RETURN_PREFIX.trim().equalsIgnoreCase(mock.trim())) {
+            //如果是return
+            //默认返回null
             RpcResult result = new RpcResult();
             result.setValue(null);
             return result;
         } else if (mock.startsWith(Constants.RETURN_PREFIX)) {
+            //如果是return开头
+            //返回解析的数据
             mock = mock.substring(Constants.RETURN_PREFIX.length()).trim();
             mock = mock.replace('`', '"');
             try {
@@ -112,6 +119,7 @@ final public class MockInvoker<T> implements Invoker<T> {
                 throw new RpcException("mock return invoke error. method :" + invocation.getMethodName() + ", mock:" + mock + ", url: " + url, ew);
             }
         } else if (mock.startsWith(Constants.THROW_PREFIX)) {
+            //如果是throw开头 抛出异常
             mock = mock.substring(Constants.THROW_PREFIX.length()).trim();
             mock = mock.replace('`', '"');
             if (StringUtils.isBlank(mock)) {
@@ -121,6 +129,7 @@ final public class MockInvoker<T> implements Invoker<T> {
                 throw new RpcException(RpcException.BIZ_EXCEPTION, t);
             }
         } else { //impl mock
+            //执行自定义Mock类逻辑
             try {
                 Invoker<T> invoker = getInvoker(mock);
                 return invoker.invoke(invocation);
@@ -192,11 +201,15 @@ final public class MockInvoker<T> implements Invoker<T> {
         if (mock == null || mock.trim().length() == 0) {
             return mock;
         } else if (ConfigUtils.isDefault(mock) || "fail".equalsIgnoreCase(mock.trim()) || "force".equalsIgnoreCase(mock.trim())) {
+            //如果mock=true/default/fail/force
+            //设置为默认的Mock类
             mock = url.getServiceInterface() + "Mock";
         }
         if (mock.startsWith(Constants.FAIL_PREFIX)) {
+            //如果是fial:开头,去除fail:
             mock = mock.substring(Constants.FAIL_PREFIX.length()).trim();
         } else if (mock.startsWith(Constants.FORCE_PREFIX)) {
+            //如果是force:开头，去除force:
             mock = mock.substring(Constants.FORCE_PREFIX.length()).trim();
         }
         return mock;

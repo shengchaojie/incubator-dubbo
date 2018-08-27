@@ -330,17 +330,20 @@ public class RegistryProtocol implements Protocol {
         URL subscribeUrl = new URL(Constants.CONSUMER_PROTOCOL, parameters.remove(Constants.REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (!Constants.ANY_VALUE.equals(url.getServiceInterface())
                 && url.getParameter(Constants.REGISTER_KEY, true)) {
-            //注册consumer url
+            //向zk注册consumer url
             registry.register(subscribeUrl.addParameters(Constants.CATEGORY_KEY, Constants.CONSUMERS_CATEGORY,
                     Constants.CHECK_KEY, String.valueOf(false)));
         }
-        //directory订阅url对应interface的provider，configurators，routers接口目录，回调接口NotifyListener由RegistryDirectory实现
+        //directory订阅url对应interface的provider，configurators，routers接口目录，回调RegistryDirectory的NotifyListener实现
+        //重点
         directory.subscribe(subscribeUrl.addParameter(Constants.CATEGORY_KEY,
                 Constants.PROVIDERS_CATEGORY
                         + "," + Constants.CONFIGURATORS_CATEGORY
                         + "," + Constants.ROUTERS_CATEGORY));
 
         //通过cluster封装获取invoker的逻辑，将对多个invoker的集群调用封装成一个invoker
+        //cluster只关注从directory获取invokers，RegistryDirectory会实时刷新invokers
+        //注意cluster存在包装类，用于增加mock逻辑
         Invoker invoker = cluster.join(directory);
         ProviderConsumerRegTable.registerConsumer(invoker, url, subscribeUrl, directory);
         return invoker;

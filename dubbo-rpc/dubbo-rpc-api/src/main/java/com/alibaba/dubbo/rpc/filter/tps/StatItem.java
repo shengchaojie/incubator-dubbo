@@ -23,14 +23,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class StatItem {
 
+    //接口名
     private String name;
 
+    //计数周期开始
     private long lastResetTime;
 
+    //计数间隔
     private long interval;
 
+    //剩余计数请求数
     private AtomicInteger token;
 
+    //总共允许请求数
     private int rate;
 
     StatItem(String name, int rate, long interval) {
