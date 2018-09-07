@@ -27,9 +27,14 @@ public class DemoServiceImpl implements DemoService {
     @Override
     public String sayHello(String name) {
         System.out.println("[" + new SimpleDateFormat("HH:mm:ss").format(new Date()) + "] Hello " + name + ", request from consumer: " + RpcContext.getContext().getRemoteAddress());
-        if(1==1)
-            throw new RuntimeException("test");
+        /*if(1==1)
+            throw new RuntimeException("test");*/
         return "Hello " + name + ", response from provider: " + RpcContext.getContext().getLocalAddress();
+    }
+
+    @Override
+    public String sayBye(String name) {
+        return "Bye " + name + ", response from provider: " + RpcContext.getContext().getLocalAddress();
     }
 
 }

@@ -32,11 +32,12 @@
 
     <!-- generate proxy for the remote service, then demoService can be used in the same way as the
     local regular interface -->
-    <dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService" mock="true"/>
+    <dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService" mock="return `scj`">
+            <dubbo:parameter key="sayHello.mock" value="force" />
+            <dubbo:parameter key="sayBye.mock" value="force" />
+    </dubbo:reference>
 
     <!--<bean id="mock" class="com.alibaba.dubbo.demo.DemoServiceMock" />-->
-
-    <dubbo:reference interface="com.alibaba.dubbo.demo.DemoService" mock="true" protocol="mock"/>
 
     <dubbo:reference id="redisService" interface="java.util.Map" url="redis://127.0.0.1:6379" />
 </beans>

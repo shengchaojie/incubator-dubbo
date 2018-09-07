@@ -162,6 +162,7 @@ final public class MockInvoker<T> implements Invoker<T> {
 
     @SuppressWarnings("unchecked")
     private Invoker<T> getInvoker(String mockService) {
+        //缓存
         Invoker<T> invoker = (Invoker<T>) mocks.get(mockService);
         if (invoker != null) {
             return invoker;
@@ -181,7 +182,9 @@ final public class MockInvoker<T> implements Invoker<T> {
             }
             try {
                 T mockObject = (T) mockClass.newInstance();
+                //ref转换为invoker
                 invoker = proxyFactory.getInvoker(mockObject, (Class<T>) serviceType, url);
+                //缓存前10000个
                 if (mocks.size() < 10000) {
                     mocks.put(mockService, invoker);
                 }
@@ -206,7 +209,7 @@ final public class MockInvoker<T> implements Invoker<T> {
             mock = url.getServiceInterface() + "Mock";
         }
         if (mock.startsWith(Constants.FAIL_PREFIX)) {
-            //如果是fial:开头,去除fail:
+            //如果是fail:开头,去除fail:
             mock = mock.substring(Constants.FAIL_PREFIX.length()).trim();
         } else if (mock.startsWith(Constants.FORCE_PREFIX)) {
             //如果是force:开头，去除force:

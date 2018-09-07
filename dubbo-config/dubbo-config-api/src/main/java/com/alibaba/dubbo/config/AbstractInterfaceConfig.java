@@ -305,6 +305,8 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
             }
         }
         if (ConfigUtils.isNotEmpty(mock)) {
+            //在reference这边必须是是return开头，或者是true/default/具体实现类 来得到Mock实现类
+            //force去哪里了。。。
             if (mock.startsWith(Constants.RETURN_PREFIX)) {
                 String value = mock.substring(Constants.RETURN_PREFIX.length());
                 try {

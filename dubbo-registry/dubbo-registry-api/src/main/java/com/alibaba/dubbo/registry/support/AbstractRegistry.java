@@ -254,7 +254,7 @@ public abstract class AbstractRegistry implements Registry {
                     reference.set(urls);
                 }
             };
-            //第一次会保证等待通知？？？也没有阻塞
+            //第一次会进行全量通知
             subscribe(url, listener); // Subscribe logic guarantees the first notify to return
             List<URL> urls = reference.get();
             if (urls != null && !urls.isEmpty()) {
@@ -326,7 +326,7 @@ public abstract class AbstractRegistry implements Registry {
         }
     }
 
-    //与注册中心锻炼后，但是注册和订阅会在本地有备份，进行复原
+    //与注册中心断连后，重新进行注册和订阅
     protected void recover() throws Exception {
         // register
         Set<URL> recoverRegistered = new HashSet<URL>(getRegistered());
@@ -365,11 +365,12 @@ public abstract class AbstractRegistry implements Registry {
             if (!UrlUtils.isMatch(url, urls.get(0))) {
                 continue;
             }
-
+            //获取订阅的NotifyListener
             Set<NotifyListener> listeners = entry.getValue();
             if (listeners != null) {
                 for (NotifyListener listener : listeners) {
                     try {
+                        //回调NotifyListener
                         notify(url, listener, filterEmpty(url, urls));
                     } catch (Throwable t) {
                         logger.error("Failed to notify registry event, urls: " + urls + ", cause: " + t.getMessage(), t);
@@ -435,6 +436,11 @@ public abstract class AbstractRegistry implements Registry {
         }
     }
 
+    /**
+     * 用于缓存上一次的通知url，
+     * 用于重启时重新触发
+     * @param url
+     */
     private void saveProperties(URL url) {
         if (file == null) {
             return;

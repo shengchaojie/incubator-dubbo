@@ -56,6 +56,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
 
     private final ConcurrentMap<URL, Set<NotifyListener>> failedUnsubscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
 
+    //订阅<url, <NotifyListener ，通知的urls>>
     private final ConcurrentMap<URL, Map<NotifyListener, List<URL>>> failedNotified = new ConcurrentHashMap<URL, Map<NotifyListener, List<URL>>>();
 
     /**

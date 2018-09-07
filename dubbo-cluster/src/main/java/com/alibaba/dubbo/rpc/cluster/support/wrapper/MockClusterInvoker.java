@@ -73,11 +73,12 @@ public class MockClusterInvoker<T> implements Invoker<T> {
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
         //获取directoryUrl，会包括客户端和Configuration的合并配置
+        //从method.xxx获取参数，如果没有，直接从xxx参数获取
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), Constants.MOCK_KEY, Boolean.FALSE.toString()).trim();
         if (value.length() == 0 || value.equalsIgnoreCase("false")) {//如果没有mock配置，不走mock逻辑
             //no mock
             result = this.invoker.invoke(invocation);
-        } else if (value.startsWith("force")) {//force开头，走mock逻辑
+        } else if (value.startsWith("force")) {//force开头，走mock逻辑 //这个force只能通过override触发
             if (logger.isWarnEnabled()) {
                 logger.info("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
@@ -108,6 +109,7 @@ public class MockClusterInvoker<T> implements Invoker<T> {
         Invoker<T> minvoker;
 
         //selectMockInvoker会选择MockProtocol暴露的MockInvoker
+        //目前没发现可以通过这种协议暴露。。。
         List<Invoker<T>> mockInvokers = selectMockInvoker(invocation);
         if (mockInvokers == null || mockInvokers.isEmpty()) {
             //使用mockinvoker处理请求

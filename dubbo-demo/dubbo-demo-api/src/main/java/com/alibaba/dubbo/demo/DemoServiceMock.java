@@ -10,6 +10,11 @@ import com.alibaba.dubbo.demo.DemoService;
 public class DemoServiceMock implements DemoService{
     @Override
     public String sayHello(String name) {
-        return name+"mock";
+        return name+"hello mock";
+    }
+
+    @Override
+    public String sayBye(String name) {
+        return name+"bye mock";
     }
 }

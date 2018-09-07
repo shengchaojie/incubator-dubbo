@@ -218,6 +218,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
                 //如果有子节点，直接进行触发一次，对应AbstractRegsitry的lookup方法
                 //意思就是第一次订阅，如果订阅目录存在子节点，直接会触发一次
                 //会触发所有种类的url
+                //只有订阅某个接口才会全量通知
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {
@@ -349,6 +350,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
 
     private List<URL> toUrlsWithEmpty(URL consumer, String path, List<String> providers) {
         List<URL> urls = toUrlsWithoutEmpty(consumer, providers);
+        //如果匹配的urls为空，插入一个empty的url
         if (urls == null || urls.isEmpty()) {
             int i = path.lastIndexOf('/');
             String category = i < 0 ? path : path.substring(i + 1);

@@ -247,10 +247,9 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     private void refreshInvoker(List<URL> invokerUrls) {
         if (invokerUrls != null && invokerUrls.size() == 1 && invokerUrls.get(0) != null
                 && Constants.EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
-            //传入的url protocol = empty,directory设置为禁用
+            //如果是empty协议的url，代表没有providers,所以销毁所有客户端对等invoker
             this.forbidden = true; // Forbid to access
             this.methodInvokerMap = null; // Set the method invoker map to null
-            //摧毁客户端的对等调用invoker
             destroyAllInvokers(); // Close all invokers
         } else {
             this.forbidden = false; // Allow to access
@@ -269,6 +268,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 return;
             }
             //把url转换为invoker，已经存在的invoker不会重新创建
+            //这边老的UrlInvokerMap应该会被垃圾回收
             Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
             //把newUrlInvokerMap转换为methodInvokerMap
             Map<String, List<Invoker<T>>> newMethodInvokerMap = toMethodInvokers(newUrlInvokerMap); // Change method name to map Invoker Map
@@ -282,6 +282,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             this.methodInvokerMap = multiGroup ? toMergeMethodInvokerMap(newMethodInvokerMap) : newMethodInvokerMap;
             this.urlInvokerMap = newUrlInvokerMap;
             try {
+                //销毁没用的invoker
                 destroyUnusedInvokers(oldUrlInvokerMap, newUrlInvokerMap); // Close the unused Invoker
             } catch (Exception e) {
                 logger.warn("destroyUnusedInvokers error. ", e);
@@ -415,6 +416,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                     } else {
                         enabled = url.getParameter(Constants.ENABLED_KEY, true);
                     }
+                    //禁用的provider不会加入到urlInvokerMap
                     if (enabled) {
                         //创建invoker
                         invoker = new InvokerDelegate<T>(protocol.refer(serviceType, url), url, providerUrl);
@@ -440,8 +442,10 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * @return
      */
     private URL mergeUrl(URL providerUrl) {
+        //merge consumer的配置
         providerUrl = ClusterUtils.mergeUrl(providerUrl, queryMap); // Merge the consumer side parameters
 
+        //使用configurator修改provider url配置
         List<Configurator> localConfigurators = this.configurators; // local reference
         if (localConfigurators != null && !localConfigurators.isEmpty()) {
             for (Configurator configurator : localConfigurators) {
@@ -522,6 +526,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         //设置一个通配方法，使用route过滤invokers
         List<Invoker<T>> newInvokersList = route(invokersList, null);
         newMethodInvokerMap.put(Constants.ANY_VALUE, newInvokersList);
+        //对method进行route
         if (serviceMethods != null && serviceMethods.length > 0) {
             for (String method : serviceMethods) {
                 List<Invoker<T>> methodInvokers = newMethodInvokerMap.get(method);
