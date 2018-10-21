@@ -620,21 +620,26 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         }
         List<Invoker<T>> invokers = null;
         //针对每个方法，有不同的invokers列表。可能存在路由配置
+        //注意！！是针对方法提供提供者列表！！面试会问
         Map<String, List<Invoker<T>>> localMethodInvokerMap = this.methodInvokerMap; // local reference
         if (localMethodInvokerMap != null && localMethodInvokerMap.size() > 0) {
             //从invocaion获取方法名和参数，可能是$invoke泛化调用
             String methodName = RpcUtils.getMethodName(invocation);
             Object[] args = RpcUtils.getArguments(invocation);
+            //根据第一个参数获取提供者
             if (args != null && args.length > 0 && args[0] != null
                     && (args[0] instanceof String || args[0].getClass().isEnum())) {
                 invokers = localMethodInvokerMap.get(methodName + "." + args[0]); // The routing can be enumerated according to the first parameter
             }
+            //找不到根据方法名
             if (invokers == null) {
                 invokers = localMethodInvokerMap.get(methodName);
             }
+            //找不到使用*
             if (invokers == null) {
                 invokers = localMethodInvokerMap.get(Constants.ANY_VALUE);
             }
+            //找不到存在即可
             if (invokers == null) {
                 Iterator<List<Invoker<T>>> iterator = localMethodInvokerMap.values().iterator();
                 if (iterator.hasNext()) {

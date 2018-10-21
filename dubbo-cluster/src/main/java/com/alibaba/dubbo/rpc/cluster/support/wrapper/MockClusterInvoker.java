@@ -72,20 +72,21 @@ public class MockClusterInvoker<T> implements Invoker<T> {
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
-        //获取directoryUrl，会包括客户端和Configuration的合并配置
+        //获取directoryUrl，会包括客户端和Configuration节点url的合并url
         //从method.xxx获取参数，如果没有，直接从xxx参数获取
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), Constants.MOCK_KEY, Boolean.FALSE.toString()).trim();
-        if (value.length() == 0 || value.equalsIgnoreCase("false")) {//如果没有mock配置，不走mock逻辑
-            //no mock
+        if (value.length() == 0 || value.equalsIgnoreCase("false")) {
+            //如果没有mock配置，不走mock逻辑
             result = this.invoker.invoke(invocation);
-        } else if (value.startsWith("force")) {//force开头，走mock逻辑 //这个force只能通过override触发
+        } else if (value.startsWith("force")) {
+            //force开头，强制进行mock //这个force只能通过override触发
             if (logger.isWarnEnabled()) {
                 logger.info("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
             //force:direct mock
             result = doMockInvoke(invocation, null);
         } else {
-            //fail-mock
+            //不是force开头，调用失败走mock逻辑
             try {
                 result = this.invoker.invoke(invocation);
             } catch (RpcException e) {

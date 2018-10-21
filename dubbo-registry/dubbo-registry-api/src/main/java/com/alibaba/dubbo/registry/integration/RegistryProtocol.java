@@ -321,6 +321,7 @@ public class RegistryProtocol implements Protocol {
 
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
         //这边的url为consumer url
+        //每个接口维护一个RegistryDirectory！！
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
         directory.setRegistry(registry);
         //这里的protocol为spi注入的适配类
