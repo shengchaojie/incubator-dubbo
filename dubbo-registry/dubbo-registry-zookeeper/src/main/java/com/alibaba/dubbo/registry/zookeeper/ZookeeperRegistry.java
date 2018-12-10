@@ -331,6 +331,9 @@ public class ZookeeperRegistry extends FailbackRegistry {
         return toCategoryPath(url) + Constants.PATH_SEPARATOR + URL.encode(url.toFullString());
     }
 
+    //筛选出匹配的URL
+    //重要
+    //仔细看UrlUtils.isMatch的逻辑
     private List<URL> toUrlsWithoutEmpty(URL consumer, List<String> providers) {
         List<URL> urls = new ArrayList<URL>();
         if (providers != null && !providers.isEmpty()) {
@@ -348,6 +351,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
         return urls;
     }
 
+    //如果不存在匹配的provider返回一个empty url
     private List<URL> toUrlsWithEmpty(URL consumer, String path, List<String> providers) {
         List<URL> urls = toUrlsWithoutEmpty(consumer, providers);
         //如果匹配的urls为空，插入一个empty的url

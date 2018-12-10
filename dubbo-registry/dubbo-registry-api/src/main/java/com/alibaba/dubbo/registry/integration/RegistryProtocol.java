@@ -294,7 +294,7 @@ public class RegistryProtocol implements Protocol {
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         url = url.setProtocol(url.getParameter(Constants.REGISTRY_KEY, Constants.DEFAULT_REGISTRY)).removeParameter(Constants.REGISTRY_KEY);
         Registry registry = registryFactory.getRegistry(url);
-        //调用的服务为RegistryService 给监控中心使用？？
+        //调用的服务为RegistryService 直接把我们的registry生成代理返回
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
         }
@@ -307,11 +307,12 @@ public class RegistryProtocol implements Protocol {
             if ((Constants.COMMA_SPLIT_PATTERN.split(group)).length > 1
                     || "*".equals(group)) {
                 //使用mergeable的cluster
+                // todo merge的作用
                 return doRefer(getMergeableCluster(), registry, type, url);
             }
         }
         //不存在group配置
-        //这边的cluster 通过spi注入适配类，默认采用failover实现
+        //这边的cluster为spi适配类，默认采用failover实现
         return doRefer(cluster, registry, type, url);
     }
 
@@ -323,6 +324,7 @@ public class RegistryProtocol implements Protocol {
         //这边的url为consumer url
         //每个接口维护一个RegistryDirectory！！
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
+        //注入注册中心实例
         directory.setRegistry(registry);
         //这里的protocol为spi注入的适配类
         directory.setProtocol(protocol);
@@ -337,6 +339,7 @@ public class RegistryProtocol implements Protocol {
         }
         //directory订阅url对应interface的provider，configurators，routers接口目录，回调RegistryDirectory的NotifyListener实现
         //重点
+        //这边注意subscribe方法会传入url，和RegistryDirectory初始化的url不同
         directory.subscribe(subscribeUrl.addParameter(Constants.CATEGORY_KEY,
                 Constants.PROVIDERS_CATEGORY
                         + "," + Constants.CONFIGURATORS_CATEGORY
