@@ -17,7 +17,6 @@
 package org.apache.dubbo.config.spring;
 
 import org.apache.dubbo.config.annotation.Service;
-
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 

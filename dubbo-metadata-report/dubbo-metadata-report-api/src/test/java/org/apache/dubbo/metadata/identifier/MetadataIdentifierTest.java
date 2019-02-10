@@ -17,7 +17,6 @@
 package org.apache.dubbo.metadata.identifier;
 
 import org.apache.dubbo.common.Constants;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

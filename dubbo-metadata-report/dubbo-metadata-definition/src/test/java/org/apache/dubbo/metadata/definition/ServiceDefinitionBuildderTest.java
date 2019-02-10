@@ -21,7 +21,6 @@ import org.apache.dubbo.metadata.definition.model.MethodDefinition;
 import org.apache.dubbo.metadata.definition.model.TypeDefinition;
 import org.apache.dubbo.metadata.definition.service.ComplexObject;
 import org.apache.dubbo.metadata.definition.service.DemoService;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

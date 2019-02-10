@@ -18,7 +18,6 @@ package org.apache.dubbo.container.log4j;
 
 import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.container.Container;
-
 import org.junit.jupiter.api.Test;
 
 /**

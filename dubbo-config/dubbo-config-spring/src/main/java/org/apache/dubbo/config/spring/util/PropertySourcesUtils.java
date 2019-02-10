@@ -16,12 +16,7 @@
  */
 package org.apache.dubbo.config.spring.util;
 
-import org.springframework.core.env.AbstractEnvironment;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.EnumerablePropertySource;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.env.PropertySource;
-import org.springframework.core.env.PropertySources;
+import org.springframework.core.env.*;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

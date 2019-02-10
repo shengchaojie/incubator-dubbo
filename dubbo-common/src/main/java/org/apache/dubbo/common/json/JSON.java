@@ -19,11 +19,7 @@ package org.apache.dubbo.common.json;
 import org.apache.dubbo.common.bytecode.Wrapper;
 import org.apache.dubbo.common.utils.Stack;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 
 /**
  * JSON.

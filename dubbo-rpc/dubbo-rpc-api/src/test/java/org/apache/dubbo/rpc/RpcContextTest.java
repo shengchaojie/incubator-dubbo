@@ -17,7 +17,6 @@
 package org.apache.dubbo.rpc;
 
 import org.apache.dubbo.common.URL;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

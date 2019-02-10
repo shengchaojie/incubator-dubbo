@@ -19,7 +19,6 @@ package org.apache.dubbo.common.logger.log4j2;
 import org.apache.dubbo.common.logger.Level;
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerAdapter;
-
 import org.apache.logging.log4j.LogManager;
 
 import java.io.File;

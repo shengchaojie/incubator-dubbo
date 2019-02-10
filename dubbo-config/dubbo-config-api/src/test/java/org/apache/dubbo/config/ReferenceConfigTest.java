@@ -20,7 +20,6 @@ import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.config.api.DemoService;
 import org.apache.dubbo.config.context.ConfigManager;
 import org.apache.dubbo.config.provider.impl.DemoServiceImpl;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

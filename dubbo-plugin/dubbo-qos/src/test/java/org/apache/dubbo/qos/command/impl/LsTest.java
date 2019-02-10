@@ -31,8 +31,8 @@ import org.mockito.Mockito;
 import java.util.Map;
 
 import static org.apache.dubbo.registry.support.ProviderConsumerRegTable.getProviderInvoker;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

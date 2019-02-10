@@ -18,7 +18,6 @@ package org.apache.dubbo.remoting.transport;
 
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.remoting.Channel;
-import org.junit.jupiter.api.Assertions;
 import org.hamcrest.CoreMatchers;
 import org.mockito.internal.verification.VerificationModeFactory;
 

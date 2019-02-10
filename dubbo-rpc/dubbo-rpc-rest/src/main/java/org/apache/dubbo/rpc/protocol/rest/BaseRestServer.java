@@ -19,7 +19,6 @@ package org.apache.dubbo.rpc.protocol.rest;
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.utils.StringUtils;
-
 import org.jboss.resteasy.spi.ResteasyDeployment;
 
 public abstract class BaseRestServer implements RestServer {

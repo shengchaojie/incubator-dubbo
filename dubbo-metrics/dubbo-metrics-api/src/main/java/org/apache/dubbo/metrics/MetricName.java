@@ -16,11 +16,7 @@
  */
 package org.apache.dubbo.metrics;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * This class is based on Dropwizard metrics, see io/dropwizard/metrics/MetricName.java

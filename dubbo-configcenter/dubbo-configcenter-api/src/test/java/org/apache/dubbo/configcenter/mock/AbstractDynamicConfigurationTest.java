@@ -21,7 +21,6 @@ import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.configcenter.DynamicConfiguration;
 import org.apache.dubbo.configcenter.DynamicConfigurationFactory;
 import org.apache.dubbo.configcenter.support.nop.NopDynamicConfigurationFactory;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

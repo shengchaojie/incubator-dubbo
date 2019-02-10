@@ -16,10 +16,6 @@
  */
 package org.apache.dubbo.container.logback;
 
-import org.apache.dubbo.common.utils.ConfigUtils;
-import org.apache.dubbo.common.utils.StringUtils;
-import org.apache.dubbo.container.Container;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -27,6 +23,9 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
+import org.apache.dubbo.common.utils.ConfigUtils;
+import org.apache.dubbo.common.utils.StringUtils;
+import org.apache.dubbo.container.Container;
 import org.slf4j.LoggerFactory;
 
 /**

@@ -16,13 +16,12 @@
  */
 package org.apache.dubbo.common.serialize.kryo;
 
-import org.apache.dubbo.common.serialize.Cleanable;
-import org.apache.dubbo.common.serialize.ObjectInput;
-import org.apache.dubbo.common.serialize.kryo.utils.KryoUtils;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.io.Input;
+import org.apache.dubbo.common.serialize.Cleanable;
+import org.apache.dubbo.common.serialize.ObjectInput;
+import org.apache.dubbo.common.serialize.kryo.utils.KryoUtils;
 
 import java.io.IOException;
 import java.io.InputStream;

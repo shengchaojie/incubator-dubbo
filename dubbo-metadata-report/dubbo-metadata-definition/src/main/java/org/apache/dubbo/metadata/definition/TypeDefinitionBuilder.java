@@ -16,20 +16,11 @@
  */
 package org.apache.dubbo.metadata.definition;
 
-import org.apache.dubbo.metadata.definition.builder.ArrayTypeBuilder;
-import org.apache.dubbo.metadata.definition.builder.CollectionTypeBuilder;
-import org.apache.dubbo.metadata.definition.builder.DefaultTypeBuilder;
-import org.apache.dubbo.metadata.definition.builder.EnumTypeBuilder;
-import org.apache.dubbo.metadata.definition.builder.MapTypeBuilder;
-import org.apache.dubbo.metadata.definition.builder.TypeBuilder;
+import org.apache.dubbo.metadata.definition.builder.*;
 import org.apache.dubbo.metadata.definition.model.TypeDefinition;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 2015/1/27.

@@ -17,7 +17,6 @@
 package org.apache.dubbo.rpc.cluster.router.condition.config.model;
 
 import org.apache.dubbo.common.utils.CollectionUtils;
-
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 

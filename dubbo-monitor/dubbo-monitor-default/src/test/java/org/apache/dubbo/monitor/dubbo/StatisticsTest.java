@@ -18,14 +18,11 @@ package org.apache.dubbo.monitor.dubbo;
 
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.monitor.MonitorService;
-
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 
 public class StatisticsTest {
     @Test

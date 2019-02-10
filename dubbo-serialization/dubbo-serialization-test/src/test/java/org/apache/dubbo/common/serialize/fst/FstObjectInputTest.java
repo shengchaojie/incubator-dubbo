@@ -17,7 +17,6 @@
 package org.apache.dubbo.common.serialize.fst;
 
 import org.apache.dubbo.common.serialize.model.person.FullAddress;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

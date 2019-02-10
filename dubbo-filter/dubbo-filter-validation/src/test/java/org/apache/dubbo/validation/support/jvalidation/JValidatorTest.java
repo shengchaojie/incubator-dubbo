@@ -18,7 +18,6 @@ package org.apache.dubbo.validation.support.jvalidation;
 
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.validation.support.jvalidation.mock.ValidationParameter;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

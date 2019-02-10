@@ -28,7 +28,6 @@ import org.apache.dubbo.common.extension.ext5.NoAdaptiveMethodExt;
 import org.apache.dubbo.common.extension.ext6_inject.Ext6;
 import org.apache.dubbo.common.extension.ext6_inject.impl.Ext6Impl2;
 import org.apache.dubbo.common.utils.LogUtil;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -38,10 +37,7 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ExtensionLoader_Adaptive_Test {
 

@@ -20,7 +20,6 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.utils.NetUtils;
 import org.apache.dubbo.rpc.cluster.configurator.absent.AbsentConfigurator;
 import org.apache.dubbo.rpc.cluster.configurator.consts.UrlConstant;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

@@ -18,7 +18,6 @@ package org.apache.dubbo.config.spring.annotation.consumer;
 
 import org.apache.dubbo.config.annotation.Reference;
 import org.apache.dubbo.config.spring.api.DemoService;
-
 import org.springframework.stereotype.Controller;
 
 /**

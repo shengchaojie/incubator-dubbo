@@ -22,11 +22,7 @@ import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.remoting.Channel;
 import org.apache.dubbo.remoting.telnet.TelnetHandler;
 import org.apache.dubbo.remoting.telnet.support.Help;
-import org.apache.dubbo.rpc.model.ApplicationModel;
-import org.apache.dubbo.rpc.model.ConsumerMethodModel;
-import org.apache.dubbo.rpc.model.ConsumerModel;
-import org.apache.dubbo.rpc.model.ProviderMethodModel;
-import org.apache.dubbo.rpc.model.ProviderModel;
+import org.apache.dubbo.rpc.model.*;
 
 import java.lang.reflect.Method;
 

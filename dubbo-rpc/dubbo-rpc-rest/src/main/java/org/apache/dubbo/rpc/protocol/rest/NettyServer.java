@@ -16,11 +16,10 @@
  */
 package org.apache.dubbo.rpc.protocol.rest;
 
+import io.netty.channel.ChannelOption;
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.utils.NetUtils;
-
-import io.netty.channel.ChannelOption;
 import org.jboss.resteasy.plugins.server.netty.NettyJaxrsServer;
 import org.jboss.resteasy.spi.ResteasyDeployment;
 

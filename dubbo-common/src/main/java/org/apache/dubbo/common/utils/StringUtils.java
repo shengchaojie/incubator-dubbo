@@ -16,20 +16,14 @@
  */
 package org.apache.dubbo.common.utils;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.io.UnsafeStringWriter;
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 
-import com.alibaba.fastjson.JSON;
-
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

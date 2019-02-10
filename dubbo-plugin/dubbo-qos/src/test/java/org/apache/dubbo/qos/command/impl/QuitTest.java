@@ -21,8 +21,8 @@ import org.apache.dubbo.qos.common.QosConstants;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class QuitTest {
     @Test

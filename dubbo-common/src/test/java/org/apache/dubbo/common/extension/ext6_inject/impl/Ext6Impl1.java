@@ -20,7 +20,6 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ext1.SimpleExt;
 import org.apache.dubbo.common.extension.ext6_inject.Dao;
 import org.apache.dubbo.common.extension.ext6_inject.Ext6;
-
 import org.junit.jupiter.api.Assertions;
 
 public class Ext6Impl1 implements Ext6 {

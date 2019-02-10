@@ -17,7 +17,6 @@
 package org.apache.dubbo.remoting.transport.codec;
 
 import org.apache.dubbo.remoting.codec.ExchangeCodecTest;
-
 import org.junit.jupiter.api.BeforeEach;
 
 public class CodecAdapterTest extends ExchangeCodecTest {

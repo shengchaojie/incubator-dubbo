@@ -19,12 +19,10 @@ package org.apache.dubbo.validation.support.jvalidation;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.validation.Validation;
 import org.apache.dubbo.validation.Validator;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.validation.ValidationException;
-import java.io.NotSerializableException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;

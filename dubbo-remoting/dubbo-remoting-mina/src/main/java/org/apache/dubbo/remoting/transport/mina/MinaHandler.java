@@ -18,7 +18,6 @@ package org.apache.dubbo.remoting.transport.mina;
 
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.remoting.ChannelHandler;
-
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
 

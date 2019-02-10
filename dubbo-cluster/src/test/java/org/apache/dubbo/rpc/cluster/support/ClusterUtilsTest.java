@@ -18,7 +18,6 @@ package org.apache.dubbo.rpc.cluster.support;
 
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

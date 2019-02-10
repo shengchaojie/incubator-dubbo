@@ -17,9 +17,7 @@
 package org.apache.dubbo.common.serialize.fastjson;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.dubbo.common.serialize.model.Person;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -30,8 +28,8 @@ import java.io.StringReader;
 
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 public class FastJsonObjectInputTest {
     private FastJsonObjectInput fastJsonObjectInput;
