@@ -33,11 +33,7 @@ import org.apache.dubbo.registry.RegistryFactory;
 import org.apache.dubbo.registry.RegistryService;
 import org.apache.dubbo.registry.support.ProviderConsumerRegTable;
 import org.apache.dubbo.registry.support.ProviderInvokerWrapper;
-import org.apache.dubbo.rpc.Exporter;
-import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.Protocol;
-import org.apache.dubbo.rpc.ProxyFactory;
-import org.apache.dubbo.rpc.RpcException;
+import org.apache.dubbo.rpc.*;
 import org.apache.dubbo.rpc.cluster.Cluster;
 import org.apache.dubbo.rpc.cluster.Configurator;
 import org.apache.dubbo.rpc.model.ApplicationModel;
@@ -51,40 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
-import static org.apache.dubbo.common.Constants.ACCEPT_FOREIGN_IP;
-import static org.apache.dubbo.common.Constants.ANY_VALUE;
-import static org.apache.dubbo.common.Constants.BIND_IP_KEY;
-import static org.apache.dubbo.common.Constants.BIND_PORT_KEY;
-import static org.apache.dubbo.common.Constants.CATEGORY_KEY;
-import static org.apache.dubbo.common.Constants.CHECK_KEY;
-import static org.apache.dubbo.common.Constants.COMMA_SPLIT_PATTERN;
-import static org.apache.dubbo.common.Constants.CONFIGURATORS_CATEGORY;
-import static org.apache.dubbo.common.Constants.CONFIGURATORS_SUFFIX;
-import static org.apache.dubbo.common.Constants.CONSUMERS_CATEGORY;
-import static org.apache.dubbo.common.Constants.CONSUMER_PROTOCOL;
-import static org.apache.dubbo.common.Constants.DEFAULT_DIRECTORY;
-import static org.apache.dubbo.common.Constants.DEFAULT_REGISTER_CONSUMER_KEYS;
-import static org.apache.dubbo.common.Constants.DEFAULT_REGISTER_PROVIDER_KEYS;
-import static org.apache.dubbo.common.Constants.DEFAULT_REGISTRY;
-import static org.apache.dubbo.common.Constants.EXPORT_KEY;
-import static org.apache.dubbo.common.Constants.EXTRA_KEYS_KEY;
-import static org.apache.dubbo.common.Constants.HIDE_KEY_PREFIX;
-import static org.apache.dubbo.common.Constants.INTERFACES;
-import static org.apache.dubbo.common.Constants.METHODS_KEY;
-import static org.apache.dubbo.common.Constants.MONITOR_KEY;
-import static org.apache.dubbo.common.Constants.OVERRIDE_PROTOCOL;
-import static org.apache.dubbo.common.Constants.PROVIDERS_CATEGORY;
-import static org.apache.dubbo.common.Constants.PROVIDER_PROTOCOL;
-import static org.apache.dubbo.common.Constants.QOS_ENABLE;
-import static org.apache.dubbo.common.Constants.QOS_PORT;
-import static org.apache.dubbo.common.Constants.REFER_KEY;
-import static org.apache.dubbo.common.Constants.REGISTER_IP_KEY;
-import static org.apache.dubbo.common.Constants.REGISTER_KEY;
-import static org.apache.dubbo.common.Constants.REGISTRY_KEY;
-import static org.apache.dubbo.common.Constants.REGISTRY_PROTOCOL;
-import static org.apache.dubbo.common.Constants.ROUTERS_CATEGORY;
-import static org.apache.dubbo.common.Constants.SIMPLIFIED_KEY;
-import static org.apache.dubbo.common.Constants.VALIDATION_KEY;
+import static org.apache.dubbo.common.Constants.*;
 import static org.apache.dubbo.common.utils.UrlUtils.classifyUrls;
 
 /**
@@ -173,15 +136,18 @@ public class RegistryProtocol implements Protocol {
         // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call
         //  the same service. Because the subscribed is cached key with the name of the service, it causes the
         //  subscription information to cover.
+        // 初始化注册中心回调配置
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         //export invoker
+        //通过远程协议进行服务发布
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
+        // 把
         final Registry registry = getRegistry(originInvoker);
         final URL registeredProviderUrl = getRegisteredProviderUrl(providerUrl, registryUrl);
         ProviderInvokerWrapper<T> providerInvokerWrapper = ProviderConsumerRegTable.registerProvider(originInvoker,
@@ -189,11 +155,13 @@ public class RegistryProtocol implements Protocol {
         //to judge if we need to delay publish
         boolean register = registeredProviderUrl.getParameter("register", true);
         if (register) {
+            //把providerUrl 设置到注册中心
             register(registryUrl, registeredProviderUrl);
             providerInvokerWrapper.setReg(true);
         }
 
         // Deprecated! Subscribe to override rules in 2.6.x or before.
+        // 通过注册中心，对providerUrl对应目录设置回调 用于动态配置功能
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
         exporter.setRegisterUrl(registeredProviderUrl);
@@ -219,6 +187,8 @@ public class RegistryProtocol implements Protocol {
                 if (exporter == null) {
 
                     final Invoker<?> invokerDelegete = new InvokerDelegate<T>(originInvoker, providerUrl);
+                    //通过远程协议进行发布
+                    //@see org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol
                     exporter = new ExporterChangeableWrapper<T>((Exporter<T>) protocol.export(invokerDelegete), originInvoker);
                     bounds.put(key, exporter);
                 }
@@ -344,19 +314,24 @@ public class RegistryProtocol implements Protocol {
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         url = url.setProtocol(url.getParameter(REGISTRY_KEY, DEFAULT_REGISTRY)).removeParameter(REGISTRY_KEY);
+        //获取注册中心对象
         Registry registry = registryFactory.getRegistry(url);
+        //如果接口为内部的RegistryService 用代理把registry包装成invoker返回
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
         }
 
         // group="a,b" or group="*"
+        //获取消费者配置
         Map<String, String> qs = StringUtils.parseQueryString(url.getParameterAndDecoded(REFER_KEY));
         String group = qs.get(Constants.GROUP_KEY);
+        //如果存在group配置 进行分组调用 结果再合并
         if (group != null && group.length() > 0) {
             if ((COMMA_SPLIT_PATTERN.split(group)).length > 1 || "*".equals(group)) {
                 return doRefer(getMergeableCluster(), registry, type, url);
             }
         }
+        //普通的cluster调用
         return doRefer(cluster, registry, type, url);
     }
 
@@ -365,6 +340,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        //初始化RegistryDirectory 这个组件会和注册中心保持同步 用于获取提供者列表 以及对应动态配置
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
@@ -373,12 +349,17 @@ public class RegistryProtocol implements Protocol {
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
+            //注册消费者url
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(subscribeUrl);
+        //订阅对应接口的provider configurations router 节点变化通知
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
+        //通过cluster.join获取invoker
+        //在cluster 内部会通过directory从注册中心获取每个服务提供者的url，通过对应protocol.refer转换为invoker
+        //然后通过 cluster 和 loadbalance 对应配置选择一个提供者进行调用
         Invoker invoker = cluster.join(directory);
         ProviderConsumerRegTable.registerConsumer(invoker, url, subscribeUrl, directory);
         return invoker;

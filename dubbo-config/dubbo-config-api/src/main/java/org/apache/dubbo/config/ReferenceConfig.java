@@ -21,11 +21,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.Version;
 import org.apache.dubbo.common.bytecode.Wrapper;
 import org.apache.dubbo.common.extension.ExtensionLoader;
-import org.apache.dubbo.common.utils.ClassHelper;
-import org.apache.dubbo.common.utils.ConfigUtils;
-import org.apache.dubbo.common.utils.NetUtils;
-import org.apache.dubbo.common.utils.StringUtils;
-import org.apache.dubbo.common.utils.CollectionUtils;
+import org.apache.dubbo.common.utils.*;
 import org.apache.dubbo.config.annotation.Reference;
 import org.apache.dubbo.config.context.ConfigManager;
 import org.apache.dubbo.config.support.Parameter;
@@ -46,13 +42,7 @@ import org.apache.dubbo.rpc.support.ProtocolUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import static org.apache.dubbo.common.utils.NetUtils.isInvalidLocalHost;
 
@@ -256,6 +246,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         initialized = true;
         checkStubAndLocal(interfaceClass);
         checkMock(interfaceClass);
+        //构造url配置
         Map<String, String> map = new HashMap<String, String>();
 
         map.put(Constants.SIDE_KEY, Constants.CONSUMER_SIDE);
@@ -303,6 +294,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         }
         map.put(Constants.REGISTER_IP_KEY, hostToRegistry);
 
+        //创建代理
         ref = createProxy(map);
 
         ConsumerModel consumerModel = new ConsumerModel(getUniqueServiceName(), interfaceClass, ref, interfaceClass.getMethods(), attributes);
@@ -318,12 +310,14 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 isJvmRefer = false;
             } else {
                 // by default, reference local service if there is
+                //判断同个jvm内有和这个提供者
                 isJvmRefer = InjvmProtocol.getInjvmProtocol().isInjvmRefer(tmpUrl);
             }
         } else {
             isJvmRefer = isInjvm();
         }
 
+        //如果同jvm内有服务提供者，直接调用同jvm的服务实现
         if (isJvmRefer) {
             URL url = new URL(Constants.LOCAL_PROTOCOL, Constants.LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
             invoker = refprotocol.refer(interfaceClass, url);
@@ -332,6 +326,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             }
         } else {
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
+                //如果存在直连url配置，不直接走注册中心，但是这个url也有可能是注册中心url
                 String[] us = Constants.SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
                     for (String u : us) {
@@ -347,7 +342,9 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                     }
                 }
             } else { // assemble URL from register center's configuration
+                //走注册中心
                 checkRegistry();
+                //可能是多注册中心
                 List<URL> us = loadRegistries(false);
                 if (CollectionUtils.isNotEmpty(us)) {
                     for (URL u : us) {
@@ -355,6 +352,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                         if (monitorUrl != null) {
                             map.put(Constants.MONITOR_KEY, URL.encode(monitorUrl.toFullString()));
                         }
+                        //为了先走RegistryProtocol
+                        //把消费者url放到refer字段中，拼接到registryUrl后面
                         urls.add(u.addParameterAndEncoded(Constants.REFER_KEY, StringUtils.toQueryString(map)));
                     }
                 }
@@ -363,19 +362,26 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 }
             }
 
+            //如果urls.size==1 直接通过refprotocol适配类走对应protocol
+            //如果大于1,在refer的基础上，通过cluster伪装为1个invoker
+            //org.apache.dubbo.registry.integration.RegistryProtocol.refer
             if (urls.size() == 1) {
                 invoker = refprotocol.refer(interfaceClass, urls.get(0));
             } else {
+                //多注册中心 或者 直接url有多个配置
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
+                    //refer得到invoker
                     invokers.add(refprotocol.refer(interfaceClass, url));
                     if (Constants.REGISTRY_PROTOCOL.equals(url.getProtocol())) {
                         registryURL = url; // use last registry url
                     }
                 }
+                //下面通过cluster伪装
                 if (registryURL != null) { // registry url is available
                     // use RegistryAwareCluster only when register's cluster is available
+                    //通过url设置cluster模式，这边这个新的模式 优先先走本地注册中心的invoker
                     URL u = registryURL.addParameter(Constants.CLUSTER_KEY, RegistryAwareCluster.NAME);
                     // The invoker wrap relation would be: RegistryAwareClusterInvoker(StaticDirectory) -> FailoverClusterInvoker(RegistryDirectory, will execute route) -> Invoker
                     invoker = cluster.join(new StaticDirectory(u, invokers));
@@ -410,6 +416,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             metadataReportService.publishConsumer(consumerURL);
         }
         // create service proxy
+        // 生成代理 无侵入使用
         return (T) proxyFactory.getProxy(invoker);
     }
 

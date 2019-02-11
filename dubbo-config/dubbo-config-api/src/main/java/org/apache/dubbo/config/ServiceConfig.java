@@ -22,12 +22,7 @@ import org.apache.dubbo.common.Version;
 import org.apache.dubbo.common.bytecode.Wrapper;
 import org.apache.dubbo.common.config.Environment;
 import org.apache.dubbo.common.extension.ExtensionLoader;
-import org.apache.dubbo.common.utils.ClassHelper;
-import org.apache.dubbo.common.utils.CollectionUtils;
-import org.apache.dubbo.common.utils.ConfigUtils;
-import org.apache.dubbo.common.utils.NamedThreadFactory;
-import org.apache.dubbo.common.utils.StringUtils;
-import org.apache.dubbo.common.utils.CollectionUtils;
+import org.apache.dubbo.common.utils.*;
 import org.apache.dubbo.config.annotation.Service;
 import org.apache.dubbo.config.context.ConfigManager;
 import org.apache.dubbo.config.invoker.DelegateProviderMetaDataInvoker;
@@ -44,27 +39,14 @@ import org.apache.dubbo.rpc.service.GenericService;
 import org.apache.dubbo.rpc.support.ProtocolUtils;
 
 import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.net.*;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.dubbo.common.Constants.LOCALHOST_VALUE;
-import static org.apache.dubbo.common.utils.NetUtils.getAvailablePort;
-import static org.apache.dubbo.common.utils.NetUtils.getLocalHost;
-import static org.apache.dubbo.common.utils.NetUtils.isInvalidLocalHost;
-import static org.apache.dubbo.common.utils.NetUtils.isInvalidPort;
+import static org.apache.dubbo.common.utils.NetUtils.*;
 
 /**
  * ServiceConfig
@@ -326,6 +308,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     }
 
     public synchronized void export() {
+        //一些前置验证操作
         checkAndUpdateSubConfigs();
 
         if (provider != null) {
@@ -336,13 +319,16 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 delay = provider.getDelay();
             }
         }
+        //如果配置为不需要export直接return
         if (export != null && !export) {
             return;
         }
 
+        //如果配置延迟发布，通过线程池延迟发布
         if (delay != null && delay > 0) {
             delayExportExecutor.schedule(this::doExport, delay, TimeUnit.MILLISECONDS);
         } else {
+            //发布逻辑入口
             doExport();
         }
     }
@@ -359,8 +345,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (StringUtils.isEmpty(path)) {
             path = interfaceName;
         }
+        //存储一些元数据
         ProviderModel providerModel = new ProviderModel(getUniqueServiceName(), ref, interfaceClass);
         ApplicationModel.initProviderModel(getUniqueServiceName(), providerModel);
+        //发布逻辑入口
         doExportUrls();
     }
 
@@ -398,12 +386,20 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+        //多注册中心多协议发布
+        //下面获取配置的注册中心
         List<URL> registryURLs = loadRegistries(true);
+        //使用配置的协议针对(多)注册中心进行服务发布
         for (ProtocolConfig protocolConfig : protocols) {
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }
 
+    /**
+     * 具体协议针对注册中心进行服务发布
+     * @param protocolConfig
+     * @param registryURLs
+     */
     private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> registryURLs) {
         String name = protocolConfig.getName();
         if (StringUtils.isEmpty(name)) {
@@ -475,9 +471,11 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         }
 
         if (ProtocolUtils.isGeneric(generic)) {
+            //初始化泛型配置
             map.put(Constants.GENERIC_KEY, generic);
             map.put(Constants.METHODS_KEY, Constants.ANY_VALUE);
         } else {
+            //不是泛型的话 把每个方法名设置到url
             String revision = Version.getVersion(interfaceClass, version);
             if (revision != null && revision.length() > 0) {
                 map.put("revision", revision);
@@ -491,6 +489,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 map.put(Constants.METHODS_KEY, StringUtils.join(new HashSet<String>(Arrays.asList(methods)), ","));
             }
         }
+        //token相关配置
         if (!ConfigUtils.isEmpty(token)) {
             if (ConfigUtils.isDefault(token)) {
                 map.put(Constants.TOKEN_KEY, UUID.randomUUID().toString());
@@ -506,20 +505,31 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
         String host = this.findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = this.findConfigedPorts(protocolConfig, name, map);
+        //使用上面构造的参数map 生成服务提供者url
         URL url = new URL(name, host, port, (StringUtils.isEmpty(contextPath) ? "" : contextPath + "/") + path, map);
 
+        //通过动态配置修改服务发布url
+        // TODO: 2019/2/11 为什么这边需要修改一次
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
                 .hasExtension(url.getProtocol())) {
             url = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
                     .getExtension(url.getProtocol()).getConfigurator(url).configure(url);
         }
 
+        //服务发布配置scope
+        //有以下几种配置 我们一般都为null
+        //null 既使用local协议本地发布(只能同进程内调用) 又使用remote协议发布
+        //none 不进行发布
+        //remote 只使用remote协议发布
+        //local 只用jvm协议本地发布
+        //local协议: jvm remote协议:dubbo hessian等
         String scope = url.getParameter(Constants.SCOPE_KEY);
         // don't export when none is configured
         if (!Constants.SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!Constants.SCOPE_REMOTE.equalsIgnoreCase(scope)) {
+                //使用jvm协议发布
                 exportLocal(url);
             }
             // export to remote if the config is not local (export to local only when config is local)
@@ -528,6 +538,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                     logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                 }
                 if (CollectionUtils.isNotEmpty(registryURLs)) {
+                    //如果存在注册中心配置 发布的同时 会设置到注册中心
                     for (URL registryURL : registryURLs) {
                         url = url.addParameterIfAbsent(Constants.DYNAMIC_KEY, registryURL.getParameter(Constants.DYNAMIC_KEY));
                         URL monitorUrl = loadMonitor(registryURL);
@@ -544,13 +555,20 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                             registryURL = registryURL.addParameter(Constants.PROXY_KEY, proxy);
                         }
 
+                        //注意这边为了先通过SPI走RegistryProtocol会把我们实际的服务发布url拼接在registryURL后面
+                        //registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString())
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
+                        //包装invoker，增加提供对应元数据功能
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
-
+                        //使用protocol进行发布
+                        //@see org.apache.dubbo.registry.integration.RegistryProtocol
                         Exporter<?> exporter = protocol.export(wrapperInvoker);
                         exporters.add(exporter);
                     }
                 } else {
+                    //不存在注册中心 进行服务发布 但是不设置到注册中心
+
+                    //通过代理把ref转换为invoker
                     Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, url);
                     DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
@@ -577,8 +595,12 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                     .setProtocol(Constants.LOCAL_PROTOCOL)
                     .setHost(LOCALHOST_VALUE)
                     .setPort(0);
+            //通过proxyFactory将ref转换为invoker 在通过protocol进行发布
+            //protocol为自适应扩展点 会选择Constants.LOCAL_PROTOCOL对应实现
+            //@see org.apache.dubbo.rpc.protocol.injvm.InjvmProtocol
             Exporter<?> exporter = protocol.export(
                     proxyFactory.getInvoker(ref, (Class) interfaceClass, local));
+            //放到exporters中 是为了应用关闭时 对发布的服务进行卸载 也就是优雅停机
             exporters.add(exporter);
             logger.info("Export dubbo service " + interfaceClass.getName() + " to local registry");
         }

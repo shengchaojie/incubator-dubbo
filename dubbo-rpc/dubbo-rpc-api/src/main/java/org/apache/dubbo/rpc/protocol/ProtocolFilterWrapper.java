@@ -19,18 +19,13 @@ package org.apache.dubbo.rpc.protocol;
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ExtensionLoader;
-import org.apache.dubbo.rpc.AsyncRpcResult;
-import org.apache.dubbo.rpc.Exporter;
-import org.apache.dubbo.rpc.Filter;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.Protocol;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcException;
+import org.apache.dubbo.rpc.*;
 
 import java.util.List;
 
 /**
+ * 扩展点自动包装机制
+ * 在refer 和 export生成的invoker 包装filter逻辑 返回包装后的invoker
  * ListenerProtocol
  */
 public class ProtocolFilterWrapper implements Protocol {

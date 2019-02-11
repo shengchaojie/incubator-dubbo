@@ -41,6 +41,7 @@ public class InvokerInvocationHandler implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
         Class<?>[] parameterTypes = method.getParameterTypes();
+        //下面几个方法不走rpc
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(invoker, args);
         }
@@ -54,9 +55,18 @@ public class InvokerInvocationHandler implements InvocationHandler {
             return invoker.equals(args[0]);
         }
 
+        //调用recreate方法 获取Result内的返回值
+        //异步调用 返回 Future
+        //同步调用返回结果或者异常
         return invoker.invoke(createInvocation(method, args)).recreate();
     }
 
+    /**
+     * 将调用信息封装为Invocation
+     * @param method
+     * @param args
+     * @return
+     */
     private RpcInvocation createInvocation(Method method, Object[] args) {
         RpcInvocation invocation = new RpcInvocation(method, args);
         if (RpcUtils.hasFutureReturnType(method)) {

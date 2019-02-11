@@ -22,38 +22,17 @@ import org.apache.dubbo.common.config.ConfigurationUtils;
 import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.common.serialize.support.SerializableClassRegistry;
 import org.apache.dubbo.common.serialize.support.SerializationOptimizer;
-import org.apache.dubbo.common.utils.CollectionUtils;
-import org.apache.dubbo.common.utils.ConcurrentHashSet;
-import org.apache.dubbo.common.utils.ConfigUtils;
-import org.apache.dubbo.common.utils.NetUtils;
-import org.apache.dubbo.common.utils.StringUtils;
+import org.apache.dubbo.common.utils.*;
 import org.apache.dubbo.remoting.Channel;
 import org.apache.dubbo.remoting.RemotingException;
 import org.apache.dubbo.remoting.Transporter;
-import org.apache.dubbo.remoting.exchange.ExchangeChannel;
-import org.apache.dubbo.remoting.exchange.ExchangeClient;
-import org.apache.dubbo.remoting.exchange.ExchangeHandler;
-import org.apache.dubbo.remoting.exchange.ExchangeServer;
-import org.apache.dubbo.remoting.exchange.Exchangers;
+import org.apache.dubbo.remoting.exchange.*;
 import org.apache.dubbo.remoting.exchange.support.ExchangeHandlerAdapter;
-import org.apache.dubbo.rpc.AsyncRpcResult;
-import org.apache.dubbo.rpc.Exporter;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.Protocol;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcContext;
-import org.apache.dubbo.rpc.RpcException;
-import org.apache.dubbo.rpc.RpcInvocation;
+import org.apache.dubbo.rpc.*;
 import org.apache.dubbo.rpc.protocol.AbstractProtocol;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -86,6 +65,7 @@ public class DubboProtocol extends AbstractProtocol {
      */
     private final ConcurrentMap<String, String> stubServiceMethodsMap = new ConcurrentHashMap<>();
 
+    //用于处理网络请求
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
         @Override
@@ -126,6 +106,9 @@ public class DubboProtocol extends AbstractProtocol {
             rpcContext.setRemoteAddress(channel.getRemoteAddress());
             Result result = invoker.invoke(inv);
 
+            //这边统一返回CompletableFuture
+            //但是对于不做异步调用的方法
+            //兼容不是异步的方法，通过completedFuture方法转换为已完成的CompletableFuture
             if (result instanceof AsyncRpcResult) {
                 return ((AsyncRpcResult) result).getResultFuture().thenApply(r -> (Object) r);
 
@@ -284,6 +267,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        //通过url中host port 开启监听
         openServer(url);
         optimizeSerialization(url);
 
@@ -296,6 +280,7 @@ public class DubboProtocol extends AbstractProtocol {
         //client can export a service which's only for server to invoke
         boolean isServer = url.getParameter(Constants.IS_SERVER_KEY, true);
         if (isServer) {
+            //判断对应port的server是否已经开启
             ExchangeServer server = serverMap.get(key);
             if (server == null) {
                 synchronized (this) {
@@ -305,6 +290,7 @@ public class DubboProtocol extends AbstractProtocol {
                     }
                 }
             } else {
+                //如果已经开启，那么reset
                 // server supports reset, use together with override
                 server.reset(url);
             }
