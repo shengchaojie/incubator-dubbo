@@ -16,16 +16,15 @@
  */
 package org.apache.dubbo.remoting.transport.netty4;
 
-import org.apache.dubbo.common.URL;
-import org.apache.dubbo.remoting.Codec2;
-import org.apache.dubbo.remoting.buffer.ChannelBuffer;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
+import org.apache.dubbo.common.URL;
+import org.apache.dubbo.remoting.Codec2;
+import org.apache.dubbo.remoting.buffer.ChannelBuffer;
 
 import java.io.IOException;
 import java.util.List;
@@ -74,6 +73,7 @@ final class NettyCodecAdapter {
         }
     }
 
+    //处理粘包
     private class InternalDecoder extends ByteToMessageDecoder {
 
         @Override

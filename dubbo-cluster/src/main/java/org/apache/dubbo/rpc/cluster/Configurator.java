@@ -21,12 +21,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.common.utils.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Configurator. (SPI, Prototype, ThreadSafe)
@@ -87,6 +82,7 @@ public interface Configurator extends Comparable<Configurator> {
                 configurators.clear();
                 continue;
             }
+            //将url转换为Configurator
             configurators.add(configuratorFactory.getConfigurator(url));
         }
         Collections.sort(configurators);

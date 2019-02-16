@@ -47,6 +47,7 @@ public class RouterChain<T> {
     }
 
     private RouterChain(URL url) {
+        //RouterChain初始化 只会初始化Activate注解的那几个Router
         List<RouterFactory> extensionFactories = ExtensionLoader.getExtensionLoader(RouterFactory.class)
                 .getActivateExtension(url, (String[]) null);
 

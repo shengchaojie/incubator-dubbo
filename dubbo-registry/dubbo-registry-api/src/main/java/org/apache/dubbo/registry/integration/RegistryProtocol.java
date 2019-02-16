@@ -352,8 +352,9 @@ public class RegistryProtocol implements Protocol {
             //注册消费者url
             registry.register(directory.getRegisteredConsumerUrl());
         }
+        //初始化RouterChain
         directory.buildRouterChain(subscribeUrl);
-        //订阅对应接口的provider configurations router 节点变化通知
+        //订阅对应接口的/providers /configurations /routers 目录节点变化通知
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 

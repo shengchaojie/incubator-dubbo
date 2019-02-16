@@ -45,6 +45,9 @@ import static org.apache.dubbo.common.utils.UrlUtils.classifyUrls;
 
 
 /**
+ * 用于动态获取提供者列表及配置
+ * 服务治理核心类
+ * 每个接口对应一个实例
  * RegistryDirectory
  */
 public class RegistryDirectory<T> extends AbstractDirectory<T> implements NotifyListener {
@@ -71,6 +74,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     /**
      * override rules
+     * 配置信息会重载 下面是优先级
      * Priority: override>-D>consumer>provider
      * Rule one: for a certain provider <ip:port,timeout=100>
      * Rule two: for all providers <* ,timeout=5000>
@@ -166,6 +170,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public synchronized void notify(List<URL> urls) {
+        //过滤无效url
         List<URL> categoryUrls = urls.stream()
                 .filter(this::isValidCategory)
                 .filter(this::isNotCompatibleFor26x)
@@ -174,12 +179,17 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         /**
          * TODO Try to refactor the processing of these three type of urls using Collectors.groupBy()?
          */
+        //将categoryUrls转换为Configurator
+        //Configurator用于修改配置
         this.configurators = Configurator.toConfigurators(classifyUrls(categoryUrls, UrlUtils::isConfigurator))
                 .orElse(configurators);
 
+        //将routerUrls转换为Routers
+        //Router用于修改providers
         toRouters(classifyUrls(categoryUrls, UrlUtils::isRoute)).ifPresent(this::addRouters);
 
-        // providers
+        //providers可能发生变化
+        //根据上面的Configurator和Routers刷新invokers
         refreshOverrideAndInvoker(classifyUrls(categoryUrls, UrlUtils::isProvider));
     }
 
@@ -208,6 +218,8 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         if (invokerUrls.size() == 1
                 && invokerUrls.get(0) != null
                 && Constants.EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
+            //如果没有provider
+            //在providers目录下 如果没有providerUrl 框架会构造一个empty url 回调过来
             this.forbidden = true; // Forbid to access
             this.invokers = Collections.emptyList();
             routerChain.setInvokers(this.invokers);
@@ -221,6 +233,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             if (invokerUrls.isEmpty() && this.cachedInvokerUrls != null) {
                 invokerUrls.addAll(this.cachedInvokerUrls);
             } else {
+                //缓存上一次notify 的 providerUrls
                 this.cachedInvokerUrls = new HashSet<>();
                 this.cachedInvokerUrls.addAll(invokerUrls);//Cached invoker urls, convenient for comparison
             }
@@ -351,6 +364,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                         ExtensionLoader.getExtensionLoader(Protocol.class).getSupportedExtensions()));
                 continue;
             }
+            //配置覆盖
             URL url = mergeUrl(providerUrl);
 
             String key = url.toFullString(); // The parameter urls are sorted
@@ -394,8 +408,10 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * @return
      */
     private URL mergeUrl(URL providerUrl) {
+        //使用consumer配置 覆盖providerUrl中的配置 consumer配置初始化的时候已经被-D覆盖过
         providerUrl = ClusterUtils.mergeUrl(providerUrl, queryMap); // Merge the consumer side parameters
 
+        //使用configurator用override的配置覆盖providerUrl配置
         providerUrl = overrideWithConfigurator(providerUrl);
 
         providerUrl = providerUrl.addParameter(Constants.CHECK_KEY, String.valueOf(false)); // Do not check whether the connection is successful or not, always create Invoker!
@@ -526,6 +542,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         List<Invoker<T>> invokers = null;
         try {
             // Get invokers from cache, only runtime routers will be executed.
+            // 根据路由帅选invokers
             invokers = routerChain.route(getConsumerUrl(), invocation);
         } catch (Throwable t) {
             logger.error("Failed to execute router: " + getUrl() + ", cause: " + t.getMessage(), t);

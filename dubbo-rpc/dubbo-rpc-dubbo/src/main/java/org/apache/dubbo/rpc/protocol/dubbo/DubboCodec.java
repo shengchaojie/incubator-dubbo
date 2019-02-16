@@ -86,6 +86,8 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
                         if (channel.getUrl().getParameter(
                                 Constants.DECODE_IN_IO_THREAD_KEY,
                                 Constants.DEFAULT_DECODE_IN_IO_THREAD)) {
+                            //不在io线程做反序列化
+                            //延迟到业务线程
                             result = new DecodeableRpcResult(channel, res, is,
                                     (Invocation) getRequestData(id), proto);
                             result.decode();

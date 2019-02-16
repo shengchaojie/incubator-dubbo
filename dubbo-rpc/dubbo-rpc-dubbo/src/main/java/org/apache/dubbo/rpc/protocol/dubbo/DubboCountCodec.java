@@ -57,6 +57,8 @@ public final class DubboCountCodec implements Codec2 {
             return Codec2.DecodeResult.NEED_MORE_INPUT;
         }
         if (result.size() == 1) {
+            //如果只有一条 返回对应Object
+            //如果大于一条的话 会返回MultiMessage
             return result.get(0);
         }
         return result;

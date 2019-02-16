@@ -49,6 +49,8 @@ public abstract class AbstractConfigurator implements Configurator {
     @Override
     public URL configure(URL url) {
         // If override url is not enabled or is invalid, just return.
+        //configuratorUrl必须有效 enable=true host!=null
+        //provider url 不能为空 host需要存在
         if (!configuratorUrl.getParameter(Constants.ENABLED_KEY, true) || configuratorUrl.getHost() == null || url == null || url.getHost() == null) {
             return url;
         }

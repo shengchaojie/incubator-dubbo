@@ -383,6 +383,7 @@ public class DubboProtocol extends AbstractProtocol {
         int connections = url.getParameter(Constants.CONNECTIONS_KEY, 0);
         List<ReferenceCountExchangeClient> shareClients = null;
         // if not configured, connection is shared, otherwise, one connection for one service
+        //默认为共享客户端模式
         if (connections == 0) {
             useShareConnect = true;
 
@@ -401,6 +402,7 @@ public class DubboProtocol extends AbstractProtocol {
                 clients[i] = shareClients.get(i);
 
             } else {
+                //如果不是共享模式 会新建clients
                 clients[i] = initClient(url);
             }
         }
@@ -554,6 +556,7 @@ public class DubboProtocol extends AbstractProtocol {
         try {
             // connection should be lazy
             if (url.getParameter(Constants.LAZY_CONNECT_KEY, false)) {
+                //封装为LazyConnectExchangeClient 调用的时候 才初始化client
                 client = new LazyConnectExchangeClient(url, requestHandler);
 
             } else {

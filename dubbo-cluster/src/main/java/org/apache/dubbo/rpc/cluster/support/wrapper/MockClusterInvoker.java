@@ -22,12 +22,7 @@ import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.utils.CollectionUtils;
 import org.apache.dubbo.common.utils.StringUtils;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcException;
-import org.apache.dubbo.rpc.RpcInvocation;
-import org.apache.dubbo.rpc.RpcResult;
+import org.apache.dubbo.rpc.*;
 import org.apache.dubbo.rpc.cluster.Directory;
 import org.apache.dubbo.rpc.support.MockInvoker;
 
@@ -85,6 +80,8 @@ public class MockClusterInvoker<T> implements Invoker<T> {
             try {
                 result = this.invoker.invoke(invocation);
             } catch (RpcException e) {
+                // 这边注意是RpcException 只有rpc框架的异常 才会触发mock
+                // 普通的业务异常会重新抛出异常
                 if (e.isBiz()) {
                     throw e;
                 }

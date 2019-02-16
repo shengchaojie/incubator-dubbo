@@ -16,23 +16,12 @@
  */
 package org.apache.dubbo.rpc.support;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ExtensionLoader;
-import org.apache.dubbo.common.utils.ConfigUtils;
-import org.apache.dubbo.common.utils.PojoUtils;
-import org.apache.dubbo.common.utils.ReflectUtils;
-import org.apache.dubbo.common.utils.StringUtils;
-import org.apache.dubbo.common.utils.ArrayUtils;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.ProxyFactory;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcException;
-import org.apache.dubbo.rpc.RpcInvocation;
-import org.apache.dubbo.rpc.RpcResult;
-
-import com.alibaba.fastjson.JSON;
+import org.apache.dubbo.common.utils.*;
+import org.apache.dubbo.rpc.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
@@ -76,7 +65,10 @@ final public class MockInvoker<T> implements Invoker<T> {
             value = JSON.parseObject(mock, Map.class);
         } else if (mock.startsWith("[")) {
             value = JSON.parseObject(mock, List.class);
-        } else {
+        } else if(mock.startsWith("*{")){
+            value = JSON.parseObject(mock.substring(1),returnTypes[1]!=null?returnTypes[1]:returnTypes[0]);
+        }
+        else {
             value = mock;
         }
         if (ArrayUtils.isNotEmpty(returnTypes)) {
