@@ -137,31 +137,35 @@ public class RegistryProtocol implements Protocol {
         //  the same service. Because the subscribed is cached key with the name of the service, it causes the
         //  subscription information to cover.
         // 初始化注册中心回调配置
+        // 这个是服务端的回调
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         //export invoker
-        //通过远程协议进行服务发布
+        //通过远程协议进行服务发布 一般来讲是Dubbo协议 得到Exporter
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
-        // 把
+        // 获取注册中心实例
         final Registry registry = getRegistry(originInvoker);
+        //获取实际注册的url
+        //2.7优化了注册的url大小 把一些配置从注册中心移除出去
         final URL registeredProviderUrl = getRegisteredProviderUrl(providerUrl, registryUrl);
         ProviderInvokerWrapper<T> providerInvokerWrapper = ProviderConsumerRegTable.registerProvider(originInvoker,
                 registryUrl, registeredProviderUrl);
         //to judge if we need to delay publish
+        //是否需要注册到注册中心
         boolean register = registeredProviderUrl.getParameter("register", true);
         if (register) {
-            //把providerUrl 设置到注册中心
+            //把providerUrl 注册到注册中心
             register(registryUrl, registeredProviderUrl);
             providerInvokerWrapper.setReg(true);
         }
 
         // Deprecated! Subscribe to override rules in 2.6.x or before.
-        // 通过注册中心，对providerUrl对应目录设置回调 用于动态配置功能
+        // 订阅注册中心对应接口目录 用于动态配置功能 没有订阅routers目录 routers只有消费者订阅
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
         exporter.setRegisterUrl(registeredProviderUrl);
@@ -180,6 +184,7 @@ public class RegistryProtocol implements Protocol {
     @SuppressWarnings("unchecked")
     private <T> ExporterChangeableWrapper<T> doLocalExport(final Invoker<T> originInvoker, URL providerUrl) {
         String key = getCacheKey(originInvoker);
+        //缓存 如果已经发布过 就不需要重复export
         ExporterChangeableWrapper<T> exporter = (ExporterChangeableWrapper<T>) bounds.get(key);
         if (exporter == null) {
             synchronized (bounds) {
@@ -187,7 +192,7 @@ public class RegistryProtocol implements Protocol {
                 if (exporter == null) {
 
                     final Invoker<?> invokerDelegete = new InvokerDelegate<T>(originInvoker, providerUrl);
-                    //通过远程协议进行发布
+                    //通过远程协议进行发布 得到exporter
                     //@see org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol
                     exporter = new ExporterChangeableWrapper<T>((Exporter<T>) protocol.export(invokerDelegete), originInvoker);
                     bounds.put(key, exporter);
@@ -314,9 +319,10 @@ public class RegistryProtocol implements Protocol {
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         url = url.setProtocol(url.getParameter(REGISTRY_KEY, DEFAULT_REGISTRY)).removeParameter(REGISTRY_KEY);
-        //获取注册中心对象
+        //获取注册中心实例
         Registry registry = registryFactory.getRegistry(url);
-        //如果接口为内部的RegistryService 用代理把registry包装成invoker返回
+        //用于引用dubbo框架内发布的服务
+        //我们可以引用这个接口 直接操作注册中心
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
         }
@@ -325,7 +331,7 @@ public class RegistryProtocol implements Protocol {
         //获取消费者配置
         Map<String, String> qs = StringUtils.parseQueryString(url.getParameterAndDecoded(REFER_KEY));
         String group = qs.get(Constants.GROUP_KEY);
-        //如果存在group配置 进行分组调用 结果再合并
+        //如果存在group配置 分组调用 结果再合并
         if (group != null && group.length() > 0) {
             if ((COMMA_SPLIT_PATTERN.split(group)).length > 1 || "*".equals(group)) {
                 return doRefer(getMergeableCluster(), registry, type, url);
@@ -340,7 +346,8 @@ public class RegistryProtocol implements Protocol {
     }
 
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
-        //初始化RegistryDirectory 这个组件会和注册中心保持同步 用于获取提供者列表 以及对应动态配置
+        // 初始化RegistryDirectory
+        // 这个组件会监听注册中心对应接口配置 动态刷新可调用invoker configurators routers实力
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
@@ -349,7 +356,7 @@ public class RegistryProtocol implements Protocol {
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
-            //注册消费者url
+            //注册消费者url到注册中心
             registry.register(directory.getRegisteredConsumerUrl());
         }
         //初始化RouterChain
@@ -358,9 +365,9 @@ public class RegistryProtocol implements Protocol {
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
-        //通过cluster.join获取invoker
-        //在cluster 内部会通过directory从注册中心获取每个服务提供者的url，通过对应protocol.refer转换为invoker
-        //然后通过 cluster 和 loadbalance 对应配置选择一个提供者进行调用
+        //directory用于获取可调用的invokers
+        //cluster封装集群调用逻辑 返回封装后的invoker
+        //在cluster内通过LoadBalance获取下一个被调用的invoker 实现负载均衡
         Invoker invoker = cluster.join(directory);
         ProviderConsumerRegTable.registerConsumer(invoker, url, subscribeUrl, directory);
         return invoker;

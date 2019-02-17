@@ -557,12 +557,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
                         //注意这边为了先通过SPI走RegistryProtocol会把我们实际的服务发布url拼接在registryURL后面
                         //registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString())
+                        //通过代理将ref转换为invoker
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
                         //包装invoker，增加提供对应元数据功能
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
                         //使用protocol进行发布
                         //@see org.apache.dubbo.registry.integration.RegistryProtocol
                         Exporter<?> exporter = protocol.export(wrapperInvoker);
+                        //把exporter放到exporters中，方便卸载
                         exporters.add(exporter);
                     }
                 } else {

@@ -65,7 +65,8 @@ public class DubboProtocol extends AbstractProtocol {
      */
     private final ConcurrentMap<String, String> stubServiceMethodsMap = new ConcurrentHashMap<>();
 
-    //用于处理网络请求
+    //netty调用链最后一个handler
+    //用于找到spring ioc内服务 进行调用
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
         @Override
@@ -78,6 +79,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
 
             Invocation inv = (Invocation) message;
+            //找到对应invoker
             Invoker<?> invoker = getInvoker(channel, inv);
             // need to consider backward-compatibility if it's a callback
             if (Boolean.TRUE.toString().equals(inv.getAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -104,11 +106,12 @@ public class DubboProtocol extends AbstractProtocol {
             }
             RpcContext rpcContext = RpcContext.getContext();
             rpcContext.setRemoteAddress(channel.getRemoteAddress());
+            //对invoker进行调用 也就是调用对应ioc中的ref
             Result result = invoker.invoke(inv);
 
             //这边统一返回CompletableFuture
             //但是对于不做异步调用的方法
-            //兼容不是异步的方法，通过completedFuture方法转换为已完成的CompletableFuture
+            //通过completedFuture方法兼容
             if (result instanceof AsyncRpcResult) {
                 return ((AsyncRpcResult) result).getResultFuture().thenApply(r -> (Object) r);
 
@@ -248,10 +251,17 @@ public class DubboProtocol extends AbstractProtocol {
 
         // export service.
         String key = serviceKey(url);
+        //将invoker转换为exporter
+        //为了证明这个invoker是被发布的
+        //并且Exporter类型为DubboExporter
+        //说明是被Dubbo协议发布
+        //一个invoker可以被多种协议发布
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
+        //把exporter保存下来 第一为了调用 第二为了卸载
         exporterMap.put(key, exporter);
 
         //export an stub service for dispatching event
+        // todo 这边暂时没研究
         Boolean isStubSupportEvent = url.getParameter(Constants.STUB_EVENT_KEY, Constants.DEFAULT_STUB_EVENT);
         Boolean isCallbackservice = url.getParameter(Constants.IS_CALLBACK_SERVICE, false);
         if (isStubSupportEvent && !isCallbackservice) {
@@ -267,8 +277,9 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
-        //通过url中host port 开启监听
+        //通过url中host port 开启netty服务器
         openServer(url);
+        //todo 序列化的优化
         optimizeSerialization(url);
 
         return exporter;
@@ -281,16 +292,19 @@ public class DubboProtocol extends AbstractProtocol {
         boolean isServer = url.getParameter(Constants.IS_SERVER_KEY, true);
         if (isServer) {
             //判断对应port的server是否已经开启
+            //如果已经开启过 不需要重复开启
             ExchangeServer server = serverMap.get(key);
             if (server == null) {
                 synchronized (this) {
                     server = serverMap.get(key);
                     if (server == null) {
+                        //如果没有开启过 那么开启
                         serverMap.put(key, createServer(url));
                     }
                 }
             } else {
                 //如果已经开启，那么reset
+                //这边用于动态配置修改了服务者相关配置
                 // server supports reset, use together with override
                 server.reset(url);
             }
@@ -308,9 +322,12 @@ public class DubboProtocol extends AbstractProtocol {
             throw new RpcException("Unsupported server type: " + str + ", url: " + url);
         }
 
+        //设置默认的codec
+        //@see DubboCountCodec
         url = url.addParameter(Constants.CODEC_KEY, DubboCodec.NAME);
         ExchangeServer server;
         try {
+            //开启netty服务
             server = Exchangers.bind(url, requestHandler);
         } catch (RemotingException e) {
             throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);
@@ -369,6 +386,7 @@ public class DubboProtocol extends AbstractProtocol {
         optimizeSerialization(url);
 
         // create rpc invoker.
+        //getClients 初始化netty客户端
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
         invokers.add(invoker);
 

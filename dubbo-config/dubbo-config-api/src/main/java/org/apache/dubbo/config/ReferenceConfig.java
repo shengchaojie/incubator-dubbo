@@ -211,11 +211,13 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     }
 
     public synchronized T get() {
+        //检查一些配置是否符合要求
         checkAndUpdateSubConfigs();
 
         if (destroyed) {
             throw new IllegalStateException("The invoker of ReferenceConfig(" + url + ") has already destroyed!");
         }
+        //如果代理还未生成
         if (ref == null) {
             init();
         }
@@ -245,6 +247,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         }
         initialized = true;
         checkStubAndLocal(interfaceClass);
+        //检查消费者的mock配置是否合理
+        //这边应该是预先在xml配置的mock配置 不是动态配置
         checkMock(interfaceClass);
         //构造url配置
         Map<String, String> map = new HashMap<String, String>();
@@ -306,11 +310,12 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         URL tmpUrl = new URL("temp", "localhost", 0, map);
         final boolean isJvmRefer;
         if (isInjvm() == null) {
+            //如果配置了直连url 不会走jvm调用
             if (url != null && url.length() > 0) { // if a url is specified, don't do local reference
                 isJvmRefer = false;
             } else {
                 // by default, reference local service if there is
-                //判断同个jvm内有和这个提供者
+                //判断同个jvm内是否这个提供者
                 isJvmRefer = InjvmProtocol.getInjvmProtocol().isInjvmRefer(tmpUrl);
             }
         } else {
@@ -320,13 +325,16 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         //如果同jvm内有服务提供者，直接调用同jvm的服务实现
         if (isJvmRefer) {
             URL url = new URL(Constants.LOCAL_PROTOCOL, Constants.LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
+            //通过InInjvmProtocol 拿到invoker
             invoker = refprotocol.refer(interfaceClass, url);
             if (logger.isInfoEnabled()) {
                 logger.info("Using injvm service " + interfaceClass.getName());
             }
         } else {
+            //拿到封装远程调用逻辑的invoker
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
-                //如果存在直连url配置，不直接走注册中心，但是这个url也有可能是注册中心url
+                //如果存在直连url配置，不直接走注册中心
+                //但是这个url也有可能是注册中心url
                 String[] us = Constants.SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
                     for (String u : us) {
@@ -335,6 +343,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                             url = url.setPath(interfaceName);
                         }
                         if (Constants.REGISTRY_PROTOCOL.equals(url.getProtocol())) {
+                            //为了先走RegistryProtocol
+                            //把消费者url放到refer字段中，拼接到registryUrl后面
                             urls.add(url.addParameterAndEncoded(Constants.REFER_KEY, StringUtils.toQueryString(map)));
                         } else {
                             urls.add(ClusterUtils.mergeUrl(url, map));
@@ -363,12 +373,14 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             }
 
             //如果urls.size==1 直接通过refprotocol适配类走对应protocol
-            //如果大于1,在refer的基础上，通过cluster伪装为1个invoker
+            //如果大于1,在refer的基础上，通过cluster伪装成1个invoker
             //org.apache.dubbo.registry.integration.RegistryProtocol.refer
             if (urls.size() == 1) {
+                //我们实际使用 一般都是走这里的逻辑
+                //RegistryProtocol内封装了Cluster逻辑
                 invoker = refprotocol.refer(interfaceClass, urls.get(0));
             } else {
-                //多注册中心 或者 直接url有多个配置
+                //多注册中心 或者 直接url有包含多个url
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
@@ -381,11 +393,13 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 //下面通过cluster伪装
                 if (registryURL != null) { // registry url is available
                     // use RegistryAwareCluster only when register's cluster is available
-                    //通过url设置cluster模式，这边这个新的模式 优先先走本地注册中心的invoker
+                    //如果urls中包含注册中心url
+                    //使用这个新的cluster模式 优先走注册中心url生成的invoker
                     URL u = registryURL.addParameter(Constants.CLUSTER_KEY, RegistryAwareCluster.NAME);
                     // The invoker wrap relation would be: RegistryAwareClusterInvoker(StaticDirectory) -> FailoverClusterInvoker(RegistryDirectory, will execute route) -> Invoker
                     invoker = cluster.join(new StaticDirectory(u, invokers));
                 } else { // not a registry url, must be direct invoke.
+                    //这边的cluster走默认的failover模式
                     invoker = cluster.join(new StaticDirectory(invokers));
                 }
             }

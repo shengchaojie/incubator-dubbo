@@ -66,7 +66,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         inv.setAttachment(Constants.VERSION_KEY, version);
 
         ExchangeClient currentClient;
-        //
+        //获取netty客户端
         if (clients.length == 1) {
             currentClient = clients[0];
         } else {

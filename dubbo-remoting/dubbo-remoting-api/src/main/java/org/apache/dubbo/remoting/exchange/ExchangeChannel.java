@@ -21,6 +21,11 @@ import org.apache.dubbo.remoting.RemotingException;
 
 /**
  * ExchangeChannel. (API/SPI, Prototype, ThreadSafe)
+ * 信息交换层核心接口
+ * 封装Request ResponseFuture调用模型
+ * 通过ResponseFuture.get 获取调用结果Response
+ * 在服务者返回结果前会阻塞 超时会唤醒 并且返回异常
+ * ResponseFuture实现为DefaultFuture
  */
 public interface ExchangeChannel extends Channel {
 
