@@ -92,6 +92,8 @@ public class ExchangeCodec extends TelnetCodec {
                 header = Bytes.copyOf(header, readable);
                 buffer.readBytes(header, length, readable - length);
             }
+            //xxxxdabbxxxxx
+            //这边为了处理 telnet协议 和dubbo协议的粘包
             for (int i = 1; i < header.length - 1; i++) {
                 if (header[i] == MAGIC_HIGH && header[i + 1] == MAGIC_LOW) {
                     buffer.readerIndex(buffer.readerIndex() - header.length + i);

@@ -52,6 +52,8 @@ public class NettyClientHandler extends ChannelDuplexHandler {
         this.handler = handler;
     }
 
+
+    //in
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
@@ -62,6 +64,7 @@ public class NettyClientHandler extends ChannelDuplexHandler {
         }
     }
 
+    //in
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
@@ -72,6 +75,7 @@ public class NettyClientHandler extends ChannelDuplexHandler {
         }
     }
 
+    //in
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
@@ -82,6 +86,7 @@ public class NettyClientHandler extends ChannelDuplexHandler {
         }
     }
 
+    //out
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         super.write(ctx, msg, promise);
@@ -111,6 +116,7 @@ public class NettyClientHandler extends ChannelDuplexHandler {
         });
     }
 
+    //in
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
@@ -132,6 +138,7 @@ public class NettyClientHandler extends ChannelDuplexHandler {
         }
     }
 
+    //in
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
             throws Exception {
