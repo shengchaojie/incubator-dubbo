@@ -109,6 +109,7 @@ public class PojoUtils {
         if (pojo instanceof Enum<?>) {
             return ((Enum<?>) pojo).name();
         }
+        //处理枚举数组
         if (pojo.getClass().isArray() && Enum.class.isAssignableFrom(pojo.getClass().getComponentType())) {
             int len = Array.getLength(pojo);
             String[] values = new String[len];
@@ -132,6 +133,7 @@ public class PojoUtils {
         }
         history.put(pojo, pojo);
 
+        //处理普通数组
         if (pojo.getClass().isArray()) {
             int len = Array.getLength(pojo);
             Object[] dest = new Object[len];

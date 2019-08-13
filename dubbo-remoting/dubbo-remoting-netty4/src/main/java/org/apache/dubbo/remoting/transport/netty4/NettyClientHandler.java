@@ -32,6 +32,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 
 /**
  * NettyClientHandler
+ * 用于将netty的channel封装成nettychannel
  */
 @io.netty.channel.ChannelHandler.Sharable
 public class NettyClientHandler extends ChannelDuplexHandler {

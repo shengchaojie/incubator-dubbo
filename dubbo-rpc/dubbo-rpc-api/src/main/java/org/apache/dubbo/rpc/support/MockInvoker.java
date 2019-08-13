@@ -62,7 +62,16 @@ final public class MockInvoker<T> implements Invoker<T> {
         } else if (StringUtils.isNumeric(mock, false)) {
             value = JSON.parse(mock);
         } else if (mock.startsWith("{")) {
-            value = JSON.parseObject(mock, Map.class);
+            /*if(((Class<?>) returnTypes[0]).isAssignableFrom(Map.class)){*/
+                value = JSON.parseObject(mock, Map.class);
+            /*}else{
+                if(returnTypes.length>1){
+                    value = JSON.parseObject(mock, returnTypes[1]);
+                }else{
+                    value = JSON.parseObject(mock, returnTypes[0]);
+                }
+            }*/
+
         } else if (mock.startsWith("[")) {
             value = JSON.parseObject(mock, List.class);
         } else if(mock.startsWith("*{")){

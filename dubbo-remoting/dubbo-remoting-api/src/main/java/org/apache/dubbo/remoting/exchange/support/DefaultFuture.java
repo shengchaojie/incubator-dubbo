@@ -48,31 +48,46 @@ public class DefaultFuture implements ResponseFuture {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultFuture.class);
 
+    //存储requestid 对应的 channel
     private static final Map<Long, Channel> CHANNELS = new ConcurrentHashMap<>();
 
+    //存储requestid 对应的DefaultFuture
     private static final Map<Long, DefaultFuture> FUTURES = new ConcurrentHashMap<>();
 
+    //检查Future超时的Timer
+    // 这个定时器用hash轮算法实现 有空可以研究下
     public static final Timer TIME_OUT_TIMER = new HashedWheelTimer(
             new NamedThreadFactory("dubbo-future-timeout", true),
             30,
             TimeUnit.MILLISECONDS);
 
     // invoke id.
+    //这个就是requestid
     private final long id;
+    //future绑定的channel
     private final Channel channel;
+    //future绑定的请求
     private final Request request;
+    //future的超时时间
     private final int timeout;
+    //锁，多线程控制，防止多个线程同时操作future
     private final Lock lock = new ReentrantLock();
     private final Condition done = lock.newCondition();
+    //开始时间 用于超时检查
     private final long start = System.currentTimeMillis();
+    //记录请求时间
     private volatile long sent;
+    //保存返回 可能是正常 或 异常返回
     private volatile Response response;
+    //成功/异常后回调
     private volatile ResponseCallback callback;
 
     private DefaultFuture(Channel channel, Request request, int timeout) {
         this.channel = channel;
         this.request = request;
+        //id=requestid
         this.id = request.getId();
+        //如果超时时间<=0,设置默认超时时间1秒
         this.timeout = timeout > 0 ? timeout : channel.getUrl().getPositiveParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
         // put into waiting map.
         FUTURES.put(id, this);
@@ -91,7 +106,7 @@ public class DefaultFuture implements ResponseFuture {
      * init a DefaultFuture
      * 1.init a DefaultFuture
      * 2.timeout check
-     *
+     * 静态工厂方法
      * @param channel channel
      * @param request the request
      * @param timeout timeout
@@ -142,6 +157,7 @@ public class DefaultFuture implements ResponseFuture {
         }
     }
 
+    //接受提供者返回的静态方法
     public static void received(Channel channel, Response response) {
         try {
             DefaultFuture future = FUTURES.remove(response.getId());
@@ -174,7 +190,9 @@ public class DefaultFuture implements ResponseFuture {
             lock.lock();
             try {
                 while (!isDone()) {
+                    //如果future未完成 进行阻塞
                     done.await(timeout, TimeUnit.MILLISECONDS);
+                    //如果future完成了 或者超时了 退出这个循环等待
                     if (isDone() || System.currentTimeMillis() - start > timeout) {
                         break;
                     }
@@ -184,10 +202,12 @@ public class DefaultFuture implements ResponseFuture {
             } finally {
                 lock.unlock();
             }
+            //如果退出 并且future未完成，抛出timeout异常
             if (!isDone()) {
                 throw new TimeoutException(sent > 0, channel, getTimeoutMessage(false));
             }
         }
+        //正常情况 返回结果
         return returnFromResponse();
     }
 
@@ -204,6 +224,7 @@ public class DefaultFuture implements ResponseFuture {
         return response != null;
     }
 
+    //设置回调
     @Override
     public void setCallback(ResponseCallback callback) {
         if (isDone()) {
@@ -226,6 +247,7 @@ public class DefaultFuture implements ResponseFuture {
         }
     }
 
+    //检查future超时的定时任务
     private static class TimeoutCheckTask implements TimerTask {
 
         private DefaultFuture future;
@@ -236,20 +258,25 @@ public class DefaultFuture implements ResponseFuture {
 
         @Override
         public void run(Timeout timeout) {
+            //到达超时时间后 如果future为空 或已经完成 那么结束task
             if (future == null || future.isDone()) {
                 return;
             }
+            // 到达超时时间后，如果future未完成，那么强制设置一个timeout的response
+            // 这边其实提供者可能还在执行，就有幂等性问题
             // create exception response.
             Response timeoutResponse = new Response(future.getId());
             // set timeout status.
             timeoutResponse.setStatus(future.isSent() ? Response.SERVER_TIMEOUT : Response.CLIENT_TIMEOUT);
             timeoutResponse.setErrorMessage(future.getTimeoutMessage(true));
             // handle response.
+            // 对future设置异常返回
             DefaultFuture.received(future.getChannel(), timeoutResponse);
 
         }
     }
 
+    //执行回调的逻辑
     private void invokeCallback(ResponseCallback c) {
         ResponseCallback callbackCopy = c;
         if (callbackCopy == null) {
@@ -291,9 +318,11 @@ public class DefaultFuture implements ResponseFuture {
         if (res.getStatus() == Response.OK) {
             return res.getResult();
         }
+        //对超时的处理
         if (res.getStatus() == Response.CLIENT_TIMEOUT || res.getStatus() == Response.SERVER_TIMEOUT) {
             throw new TimeoutException(res.getStatus() == Response.SERVER_TIMEOUT, channel, res.getErrorMessage());
         }
+        //其他异常情况
         throw new RemotingException(channel, res.getErrorMessage());
     }
 
@@ -330,16 +359,19 @@ public class DefaultFuture implements ResponseFuture {
         try {
             response = res;
             if (done != null) {
+                //接受到提供者返回后 唤醒正在等待的线程
                 done.signal();
             }
         } finally {
             lock.unlock();
         }
         if (callback != null) {
+            //如果有回调 执行回调
             invokeCallback(callback);
         }
     }
 
+    //timeout异常的描述
     private String getTimeoutMessage(boolean scan) {
         long nowTimestamp = System.currentTimeMillis();
         return (sent > 0 ? "Waiting server-side response timeout" : "Sending request timeout in client-side")

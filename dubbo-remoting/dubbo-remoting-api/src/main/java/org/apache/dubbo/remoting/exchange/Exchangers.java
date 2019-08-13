@@ -109,6 +109,7 @@ public class Exchangers {
         return getExchanger(url).connect(url, handler);
     }
 
+    //默认headerexchanger
     public static Exchanger getExchanger(URL url) {
         String type = url.getParameter(Constants.EXCHANGER_KEY, Constants.DEFAULT_EXCHANGER);
         return getExchanger(type);

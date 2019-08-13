@@ -64,6 +64,7 @@ public class Transporters {
         if (url == null) {
             throw new IllegalArgumentException("url == null");
         }
+        //针对handlers进行包装
         ChannelHandler handler;
         if (handlers == null || handlers.length == 0) {
             handler = new ChannelHandlerAdapter();

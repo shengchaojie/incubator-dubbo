@@ -435,6 +435,7 @@ public class DubboProtocol extends AbstractProtocol {
      * @param connectNum connectNum must be greater than or equal to 1
      */
     private List<ReferenceCountExchangeClient> getSharedClient(URL url, int connectNum) {
+        //注意key是host:port
         String key = url.getAddress();
         List<ReferenceCountExchangeClient> clients = referenceClientMap.get(key);
 
@@ -443,6 +444,8 @@ public class DubboProtocol extends AbstractProtocol {
             return clients;
         }
 
+        //每个key对应一个Object，注意是putIfAbsent，所以Object如果存在是不会被替换的
+        //可能存在对多个address的并发初始化
         locks.putIfAbsent(key, new Object());
         synchronized (locks.get(key)) {
             clients = referenceClientMap.get(key);
@@ -552,19 +555,23 @@ public class DubboProtocol extends AbstractProtocol {
 
     /**
      * Create new connection
-     *
+     * 创建netty客户端 也就是建立长连接
      * @param url
      */
     private ExchangeClient initClient(URL url) {
 
         // client type setting.
+        // 获取客户端类型
         String str = url.getParameter(Constants.CLIENT_KEY, url.getParameter(Constants.SERVER_KEY, Constants.DEFAULT_REMOTING_CLIENT));
 
+        //设置codec默认为dubbo
         url = url.addParameter(Constants.CODEC_KEY, DubboCodec.NAME);
         // enable heartbeat by default
+        //默认60秒心跳
         url = url.addParameterIfAbsent(Constants.HEARTBEAT_KEY, String.valueOf(Constants.DEFAULT_HEARTBEAT));
 
         // BIO is not allowed since it has severe performance issue.
+        // 看Transporter是否支持这个客户端那类型
         if (str != null && str.length() > 0 && !ExtensionLoader.getExtensionLoader(Transporter.class).hasExtension(str)) {
             throw new RpcException("Unsupported client type: " + str + "," +
                     " supported client type is " + StringUtils.join(ExtensionLoader.getExtensionLoader(Transporter.class).getSupportedExtensions(), " "));
@@ -578,6 +585,7 @@ public class DubboProtocol extends AbstractProtocol {
                 client = new LazyConnectExchangeClient(url, requestHandler);
 
             } else {
+                // 注意客户端初始化入口
                 client = Exchangers.connect(url, requestHandler);
             }
 

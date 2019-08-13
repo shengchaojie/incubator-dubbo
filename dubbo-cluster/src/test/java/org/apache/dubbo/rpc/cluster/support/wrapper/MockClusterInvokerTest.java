@@ -16,9 +16,11 @@
  */
 package org.apache.dubbo.rpc.cluster.support.wrapper;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ExtensionLoader;
+import org.apache.dubbo.common.utils.PojoUtils;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Protocol;
@@ -35,9 +37,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class MockClusterInvokerTest {
 
@@ -640,6 +640,38 @@ public class MockClusterInvokerTest {
         }
     }
 
+    @Test
+    public void testMockInvokerFromOverride_Invoke_mock_return_object_json_with_generic(){
+        URL url = URL.valueOf("remote://1.2.3.4/" + IHelloService.class.getName())
+                .addParameter("mock", "force:return {\"data\":{\"id\":123,\"name\":\"scjtestmock\"}}");
+        Invoker<IHelloService> cluster = getClusterInvoker(url);
+        RpcInvocation invocation = new RpcInvocation();
+        invocation.setMethodName("getGenericUser");
+        Result result = cluster.invoke(invocation);
+        Wrapper<User> user = (Wrapper<User>)result.getValue();
+        Assertions.assertTrue(user.getData().getClass().isAssignableFrom(User.class));
+    }
+
+    @Test
+    public void testMockInvokerFromOverride_Invoke_mock_return_map_json_with_generic(){
+        URL url = URL.valueOf("remote://1.2.3.4/" + IHelloService.class.getName())
+                .addParameter("mock", "force:return {\"data\":{\"id\":123,\"name\":\"scjtestmock\",\"class\":\"org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterInvokerTest$User\"}}");
+        Invoker<IHelloService> cluster = getClusterInvoker(url);
+        RpcInvocation invocation = new RpcInvocation();
+        invocation.setMethodName("getMapWithGeneric");
+        Result result = cluster.invoke(invocation);
+        Map<String,User> user = (Map<String,User>)result.getValue();
+        Assertions.assertTrue(user.get("data").getClass().isAssignableFrom(User.class));
+    }
+
+    @Test
+    public void test1111(){
+        Map<String,User> user = new HashMap<>();
+        user.put("data",new User(1,"2"));
+        Object o = PojoUtils.generalize(user);
+    }
+
+
     private Invoker<IHelloService> getClusterInvokerMock(URL url, Invoker<IHelloService> mockInvoker) {
         // As `javassist` have a strict restriction of argument types, request will fail if Invocation do not contains complete parameter type information
         final URL durl = url.addParameter("proxy", "jdk");
@@ -690,6 +722,10 @@ public class MockClusterInvokerTest {
         public List<User> getUsers();
 
         void sayHello();
+
+        Wrapper<User> getGenericUser();
+
+        Map<String,User> getMapWithGeneric();
     }
 
     public static class HelloService implements IHelloService {
@@ -727,6 +763,20 @@ public class MockClusterInvokerTest {
 
         public void sayHello() {
             System.out.println("hello prety");
+        }
+
+        @Override
+        public Wrapper<User> getGenericUser() {
+            Wrapper<User> result = new Wrapper<>();
+            result.setData(new User(1, "snapshot"));
+            return result;
+        }
+
+        @Override
+        public Map<String, User> getMapWithGeneric() {
+            Map<String, User> result = new HashMap<>();
+            result.put("test",new User(1, "snapshot"));
+            return result;
         }
     }
 
@@ -769,6 +819,33 @@ public class MockClusterInvokerTest {
 
         public void sayHello() {
             System.out.println("hello prety");
+        }
+
+        @Override
+        public Wrapper<User> getGenericUser() {
+            Wrapper<User> result = new Wrapper<>();
+            result.setData(new User(1, "snapshotMock"));
+            return result;
+        }
+
+        @Override
+        public Map<String, User> getMapWithGeneric() {
+            Map<String, User> result = new HashMap<>();
+            result.put("test",new User(1, "snapshotMock"));
+            return result;
+        }
+    }
+
+    public static class Wrapper<T> {
+
+        private T data;
+
+        public T getData() {
+            return data;
+        }
+
+        public void setData(T data) {
+            this.data = data;
         }
     }
 
