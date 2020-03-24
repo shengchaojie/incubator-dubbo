@@ -22,7 +22,6 @@ import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.status.Status;
 import org.apache.dubbo.common.status.StatusChecker;
 import org.apache.dubbo.config.spring.extension.SpringExtensionFactory;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.Lifecycle;
 

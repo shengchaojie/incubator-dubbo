@@ -16,8 +16,12 @@
  */
 package org.apache.dubbo.demo;
 
+import java.util.Map;
+
 public interface DemoService {
 
     String sayHello(String name);
+
+    Map<String,String> testMap();
 
 }

@@ -24,7 +24,6 @@ import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.rpc.ProxyFactory;
 import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.service.EchoService;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 

@@ -26,7 +26,6 @@ import org.apache.dubbo.common.logger.log4j2.Log4j2Logger;
 import org.apache.dubbo.common.logger.log4j2.Log4j2LoggerAdapter;
 import org.apache.dubbo.common.logger.slf4j.Slf4jLogger;
 import org.apache.dubbo.common.logger.slf4j.Slf4jLoggerAdapter;
-
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;

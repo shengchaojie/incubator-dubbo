@@ -18,7 +18,6 @@ package org.apache.dubbo.common.logger.slf4j;
 
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.support.FailsafeLogger;
-
 import org.slf4j.spi.LocationAwareLogger;
 
 import java.io.Serializable;

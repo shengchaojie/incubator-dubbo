@@ -19,7 +19,6 @@ package org.apache.dubbo.test.consumer;
 import org.apache.dubbo.config.annotation.Reference;
 import org.apache.dubbo.config.spring.context.annotation.DubboComponentScan;
 import org.apache.dubbo.demo.DemoService;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 

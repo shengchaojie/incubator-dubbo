@@ -25,7 +25,6 @@ import org.apache.dubbo.remoting.exchange.ExchangeHandler;
 import org.apache.dubbo.remoting.exchange.Request;
 import org.apache.dubbo.remoting.exchange.Response;
 import org.apache.dubbo.remoting.exchange.support.header.HeaderExchangeHandler;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

@@ -18,7 +18,6 @@ package org.apache.dubbo.common.logger.log4j;
 
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.support.FailsafeLogger;
-
 import org.apache.log4j.Level;
 
 public class Log4jLogger implements Logger {

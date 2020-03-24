@@ -16,10 +16,9 @@
  */
 package org.apache.dubbo.rpc.protocol.rest.support;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
-
-import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Priority;
 import javax.ws.rs.WebApplicationException;

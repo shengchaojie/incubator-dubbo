@@ -16,14 +16,8 @@
  */
 package org.apache.dubbo.common.compiler.support;
 
+import javassist.*;
 import org.apache.dubbo.common.utils.ClassHelper;
-
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtField;
-import javassist.CtNewConstructor;
-import javassist.CtNewMethod;
-import javassist.LoaderClassPath;
 
 import java.util.ArrayList;
 import java.util.HashMap;

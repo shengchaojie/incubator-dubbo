@@ -16,9 +16,8 @@
  */
 package org.apache.dubbo.common.logger.jcl;
 
-import org.apache.dubbo.common.logger.Logger;
-
 import org.apache.commons.logging.Log;
+import org.apache.dubbo.common.logger.Logger;
 
 import java.io.Serializable;
 

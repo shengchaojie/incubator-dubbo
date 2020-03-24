@@ -16,12 +16,11 @@
  */
 package org.apache.dubbo.remoting.zookeeper.curator;
 
+import org.apache.curator.framework.api.CuratorWatcher;
+import org.apache.curator.test.TestingServer;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.utils.NetUtils;
 import org.apache.dubbo.remoting.zookeeper.ChildListener;
-
-import org.apache.curator.framework.api.CuratorWatcher;
-import org.apache.curator.test.TestingServer;
 import org.apache.zookeeper.WatchedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;

@@ -24,7 +24,6 @@ import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.spring.beans.factory.config.YamlPropertySourceFactory;
 import org.apache.dubbo.config.spring.context.properties.DefaultDubboConfigBinder;
 import org.apache.dubbo.config.spring.context.properties.DubboConfigBinder;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

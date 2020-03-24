@@ -16,9 +16,8 @@
  */
 package org.apache.dubbo.rpc.protocol.rmi;
 
-import org.apache.dubbo.rpc.RpcContext;
-
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.dubbo.rpc.RpcContext;
 import org.springframework.remoting.support.RemoteInvocation;
 
 import java.lang.reflect.InvocationTargetException;

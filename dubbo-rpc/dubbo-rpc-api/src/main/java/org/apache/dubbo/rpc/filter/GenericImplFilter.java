@@ -25,13 +25,7 @@ import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.utils.PojoUtils;
 import org.apache.dubbo.common.utils.ReflectUtils;
-import org.apache.dubbo.rpc.Filter;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcException;
-import org.apache.dubbo.rpc.RpcInvocation;
-import org.apache.dubbo.rpc.RpcResult;
+import org.apache.dubbo.rpc.*;
 import org.apache.dubbo.rpc.service.GenericException;
 import org.apache.dubbo.rpc.support.ProtocolUtils;
 
@@ -75,10 +69,6 @@ public class GenericImplFilter implements Filter {
                 args = PojoUtils.generalize(arguments);
             }
 
-            //泛化调用的invocation
-            //method = $invoke
-            //paramtypes string string[] object[]
-            //arguments  methodName type[] argument[]
             invocation2.setMethodName(Constants.$INVOKE);
             invocation2.setParameterTypes(GENERIC_PARAMETER_TYPES);
             invocation2.setArguments(new Object[]{methodName, types, args});
@@ -86,7 +76,6 @@ public class GenericImplFilter implements Filter {
 
             if (!result.hasException()) {
                 Object value = result.getValue();
-                //下面是反序列化逻辑
                 try {
                     Method method = invoker.getInterface().getMethod(methodName, parameterTypes);
                     if (ProtocolUtils.isBeanGenericSerialization(generic)) {
@@ -110,7 +99,6 @@ public class GenericImplFilter implements Filter {
                     throw new RpcException(e.getMessage(), e);
                 }
             } else if (result.getException() instanceof GenericException) {
-                //异常处理
                 GenericException exception = (GenericException) result.getException();
                 try {
                     String className = exception.getExceptionClass();
@@ -151,7 +139,6 @@ public class GenericImplFilter implements Filter {
             return result;
         }
 
-        //invocation本身就是泛化调用模式
         if (invocation.getMethodName().equals(Constants.$INVOKE)
                 && invocation.getArguments() != null
                 && invocation.getArguments().length == 3
@@ -176,8 +163,6 @@ public class GenericImplFilter implements Filter {
             ((RpcInvocation) invocation).setAttachment(
                     Constants.GENERIC_KEY, invoker.getUrl().getParameter(Constants.GENERIC_KEY));
         }
-
-        //不是泛化调用
         return invoker.invoke(invocation);
     }
 

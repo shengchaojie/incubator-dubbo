@@ -19,7 +19,6 @@ package org.apache.dubbo.common.extension;
 import org.apache.dubbo.common.extension.compatible.CompatibleExt;
 import org.apache.dubbo.common.extension.compatible.impl.CompatibleExtImpl1;
 import org.apache.dubbo.common.extension.compatible.impl.CompatibleExtImpl2;
-
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;

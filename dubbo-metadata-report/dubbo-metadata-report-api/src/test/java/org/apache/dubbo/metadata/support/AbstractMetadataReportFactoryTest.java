@@ -16,14 +16,12 @@
  */
 package org.apache.dubbo.metadata.support;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.utils.NetUtils;
 import org.apache.dubbo.metadata.definition.model.FullServiceDefinition;
 import org.apache.dubbo.metadata.identifier.MetadataIdentifier;
 import org.apache.dubbo.metadata.store.MetadataReport;
-
-import com.alibaba.fastjson.JSON;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

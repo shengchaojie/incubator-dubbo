@@ -16,17 +16,11 @@
  */
 package org.apache.dubbo.common.serialize.fastjson;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.dubbo.common.serialize.ObjectInput;
 import org.apache.dubbo.common.utils.PojoUtils;
 
-import com.alibaba.fastjson.JSON;
-
-import java.io.BufferedReader;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.lang.reflect.Type;
 
 /**

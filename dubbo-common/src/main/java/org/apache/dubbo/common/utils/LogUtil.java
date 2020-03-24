@@ -18,7 +18,6 @@ package org.apache.dubbo.common.utils;
 
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
-
 import org.apache.log4j.Level;
 
 import java.util.Iterator;

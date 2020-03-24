@@ -17,7 +17,6 @@
 package org.apache.dubbo.common.extension;
 
 import org.apache.dubbo.common.compiler.support.AdaptiveCompiler;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 

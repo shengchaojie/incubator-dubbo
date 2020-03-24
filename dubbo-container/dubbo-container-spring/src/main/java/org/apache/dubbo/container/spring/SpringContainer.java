@@ -21,7 +21,6 @@ import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.utils.ConfigUtils;
 import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.container.Container;
-
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**

@@ -18,12 +18,7 @@ package org.apache.dubbo.common.serialize.java;
 
 import org.apache.dubbo.common.utils.ClassHelper;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectStreamClass;
-import java.io.StreamCorruptedException;
+import java.io.*;
 
 /**
  * Compacted java object input implementation

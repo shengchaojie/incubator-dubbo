@@ -59,6 +59,14 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
     public static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
     private static final Logger log = LoggerFactory.getLogger(DubboCodec.class);
 
+    /**
+     * 这边直接把ExchangeCodec的decodeBody逻辑直接覆盖了。。
+     * @param channel
+     * @param is
+     * @param header
+     * @return
+     * @throws IOException
+     */
     @Override
     protected Object decodeBody(Channel channel, InputStream is, byte[] header) throws IOException {
         byte flag = header[2], proto = (byte) (flag & SERIALIZATION_MASK);
@@ -82,14 +90,15 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
                     } else if (res.isEvent()) {
                         data = decodeEventData(channel, in);
                     } else {
+                        //这边是一个优化点，反序列化body是在io线程执行，还是推迟到业务线程
                         DecodeableRpcResult result;
                         if (channel.getUrl().getParameter(
                                 Constants.DECODE_IN_IO_THREAD_KEY,
                                 Constants.DEFAULT_DECODE_IN_IO_THREAD)) {
-                            //不在io线程做反序列化
-                            //延迟到业务线程
+                            //反序列化后的东西 需要再次加工 逻辑都封装在DecodeableRpcResult中
                             result = new DecodeableRpcResult(channel, res, is,
                                     (Invocation) getRequestData(id), proto);
+                            //执行反序列化
                             result.decode();
                         } else {
                             result = new DecodeableRpcResult(channel, res,
@@ -126,6 +135,7 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
                 } else if (req.isEvent()) {
                     data = decodeEventData(channel, in);
                 } else {
+                    //逻辑基本和Resposne一致  但是类不是同一个
                     DecodeableRpcInvocation inv;
                     if (channel.getUrl().getParameter(
                             Constants.DECODE_IN_IO_THREAD_KEY,

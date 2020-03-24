@@ -18,11 +18,7 @@ package org.apache.dubbo.rpc.protocol.injvm;
 
 import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
-import org.apache.dubbo.rpc.Exporter;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcContext;
-import org.apache.dubbo.rpc.RpcException;
+import org.apache.dubbo.rpc.*;
 import org.apache.dubbo.rpc.protocol.AbstractInvoker;
 
 import java.util.Map;
@@ -59,7 +55,6 @@ class InjvmInvoker<T> extends AbstractInvoker<T> {
             throw new RpcException("Service [" + key + "] not found.");
         }
         RpcContext.getContext().setRemoteAddress(Constants.LOCALHOST_VALUE, 0);
-        //直接对同jvm内的invoker进行调用即可
         return exporter.getInvoker().invoke(invocation);
     }
 }

@@ -16,13 +16,12 @@
  */
 package org.apache.dubbo.qos.server.handler;
 
-import org.apache.dubbo.qos.common.QosConstants;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
+import org.apache.dubbo.qos.common.QosConstants;
 
 import java.net.InetSocketAddress;
 

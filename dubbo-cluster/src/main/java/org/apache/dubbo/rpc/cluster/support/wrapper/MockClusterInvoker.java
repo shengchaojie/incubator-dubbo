@@ -65,23 +65,26 @@ public class MockClusterInvoker<T> implements Invoker<T> {
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
 
+        //获取方法级别mock配置
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), Constants.MOCK_KEY, Boolean.FALSE.toString()).trim();
+        //没有配置 或者 =false
         if (value.length() == 0 || value.equalsIgnoreCase("false")) {
             //no mock
             result = this.invoker.invoke(invocation);
         } else if (value.startsWith("force")) {
+            // force 开头 强制进行mock
             if (logger.isWarnEnabled()) {
                 logger.warn("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
             //force:direct mock
             result = doMockInvoke(invocation, null);
         } else {
+            //不是force的话 是失败了再进行mock
             //fail-mock
             try {
                 result = this.invoker.invoke(invocation);
             } catch (RpcException e) {
-                // 这边注意是RpcException 只有rpc框架的异常 才会触发mock
-                // 普通的业务异常会重新抛出异常
+                //如果是业务异常不进行mock
                 if (e.isBiz()) {
                     throw e;
                 }
@@ -100,10 +103,13 @@ public class MockClusterInvoker<T> implements Invoker<T> {
         Result result = null;
         Invoker<T> minvoker;
 
+        //如果有mock协议的provider 优先使用mock provider
         List<Invoker<T>> mockInvokers = selectMockInvoker(invocation);
         if (CollectionUtils.isEmpty(mockInvokers)) {
+            //使用override后的url生成mockinvoker
             minvoker = (Invoker<T>) new MockInvoker(directory.getUrl());
         } else {
+            //使用mock provider
             minvoker = mockInvokers.get(0);
         }
         try {
@@ -142,6 +148,7 @@ public class MockClusterInvoker<T> implements Invoker<T> {
         //TODO generic invoker？
         if (invocation instanceof RpcInvocation) {
             //Note the implicit contract (although the description is added to the interface declaration, but extensibility is a problem. The practice placed in the attachment needs to be improved)
+            //返回需要进行mock的invoker 也就是正常的invoker
             ((RpcInvocation) invocation).setAttachment(Constants.INVOCATION_NEED_MOCK, Boolean.TRUE.toString());
             //directory will return a list of normal invokers if Constants.INVOCATION_NEED_MOCK is present in invocation, otherwise, a list of mock invokers will return.
             try {

@@ -16,15 +16,10 @@
  */
 package org.apache.dubbo.metadata.definition;
 
-import org.apache.dubbo.metadata.definition.common.ClassExtendsMap;
-import org.apache.dubbo.metadata.definition.common.ColorEnum;
-import org.apache.dubbo.metadata.definition.common.OuterClass;
-import org.apache.dubbo.metadata.definition.common.ResultWithRawCollections;
-import org.apache.dubbo.metadata.definition.common.TestService;
+import com.google.gson.Gson;
+import org.apache.dubbo.metadata.definition.common.*;
 import org.apache.dubbo.metadata.definition.model.ServiceDefinition;
 import org.apache.dubbo.metadata.definition.model.TypeDefinition;
-
-import com.google.gson.Gson;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

@@ -90,6 +90,15 @@ public class TelnetCodec extends TransportCodec {
         return Charset.defaultCharset();
     }
 
+    /**
+     * 将二进制转换为string
+     * 其中可能会有一些换行符什么的需要特殊处理
+     * todo 那些特殊处理逻辑分析
+     * @param message
+     * @param charset
+     * @return
+     * @throws UnsupportedEncodingException
+     */
     private static String toString(byte[] message, Charset charset) throws UnsupportedEncodingException {
         byte[] copy = new byte[message.length];
         int index = 0;
@@ -144,8 +153,11 @@ public class TelnetCodec extends TransportCodec {
 
     @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object message) throws IOException {
+        //String类型的返回 用于telnet
         if (message instanceof String) {
+            //如果channel是client的 也就是说当前的是server
             if (isClientSide(channel)) {
+                //给client返回telnet结果增加换行
                 message = message + "\r\n";
             }
             byte[] msgData = ((String) message).getBytes(getCharset(channel).name());
@@ -165,14 +177,19 @@ public class TelnetCodec extends TransportCodec {
 
     @SuppressWarnings("unchecked")
     protected Object decode(Channel channel, ChannelBuffer buffer, int readable, byte[] message) throws IOException {
+        // TODO: 2020-03-24 这段逻辑为啥这样。。。
         if (isClientSide(channel)) {
+            //telnet直接从二进制转换为String
             return toString(message, getCharset(channel));
         }
+        //一下逻辑都是telnet专属
         checkPayload(channel, readable);
         if (message == null || message.length == 0) {
             return DecodeResult.NEED_MORE_INPUT;
         }
 
+        // TODO: 2020-03-24 看不懂windows下的这个骚操作
+        // 大概意思是客户端发了回车过来 要回显去掉上一个字符的内容
         if (message[message.length - 1] == '\b') { // Windows backspace echo
             try {
                 boolean doublechar = message.length >= 3 && message[message.length - 3] < 0; // double byte char
@@ -183,6 +200,7 @@ public class TelnetCodec extends TransportCodec {
             return DecodeResult.NEED_MORE_INPUT;
         }
 
+        //退出操作
         for (Object command : EXIT) {
             if (isEquals(message, (byte[]) command)) {
                 if (logger.isInfoEnabled()) {
@@ -193,6 +211,8 @@ public class TelnetCodec extends TransportCodec {
             }
         }
 
+        //上或下 用于查找之前的命令
+        //数据结构就是栈
         boolean up = endsWith(message, UP);
         boolean down = endsWith(message, DOWN);
         if (up || down) {

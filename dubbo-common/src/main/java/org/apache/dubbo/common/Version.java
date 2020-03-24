@@ -23,11 +23,7 @@ import org.apache.dubbo.common.utils.StringUtils;
 
 import java.net.URL;
 import java.security.CodeSource;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Version

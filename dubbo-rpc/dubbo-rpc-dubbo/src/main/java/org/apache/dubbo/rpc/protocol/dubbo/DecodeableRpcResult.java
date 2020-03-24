@@ -38,6 +38,9 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.Map;
 
+/**
+ * 封装了decode 反序列化后的response的逻辑
+ */
 public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable {
 
     private static final Logger log = LoggerFactory.getLogger(DecodeableRpcResult.class);
@@ -72,26 +75,34 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
 
     @Override
     public Object decode(Channel channel, InputStream input) throws IOException {
+        //反序列化body
         ObjectInput in = CodecSupport.getSerialization(channel.getUrl(), serializationType)
                 .deserialize(channel.getUrl(), input);
 
+        //body反序列化后的格式为 状态码 vlaue/excetion [attachment]
         byte flag = in.readByte();
         switch (flag) {
+                //返回类型是null 不做处理
             case DubboCodec.RESPONSE_NULL_VALUE:
                 break;
+                //返回类型是正常的value
             case DubboCodec.RESPONSE_VALUE:
                 handleValue(in);
                 break;
+                //如果是异常
             case DubboCodec.RESPONSE_WITH_EXCEPTION:
                 handleException(in);
                 break;
+                //如果返回null 并且带上下文
             case DubboCodec.RESPONSE_NULL_VALUE_WITH_ATTACHMENTS:
                 handleAttachment(in);
                 break;
+                //返回value 并且带上下文
             case DubboCodec.RESPONSE_VALUE_WITH_ATTACHMENTS:
                 handleValue(in);
                 handleAttachment(in);
                 break;
+                //返回异常 并且带上下文
             case DubboCodec.RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS:
                 handleException(in);
                 handleAttachment(in);
@@ -107,6 +118,7 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
 
     @Override
     public void decode() throws Exception {
+        //已经decode不会重复decode
         if (!hasDecoded && channel != null && inputStream != null) {
             try {
                 decode(channel, inputStream);
@@ -124,13 +136,17 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
 
     private void handleValue(ObjectInput in) throws IOException {
         try {
+            //获取接口的返回类型type
             Type[] returnTypes = RpcUtils.getReturnTypes(invocation);
             Object value = null;
             if (ArrayUtils.isEmpty(returnTypes)) {
+                //todo 这是什么场景 为啥不存在 void还是Object
                 value = in.readObject();
             } else if (returnTypes.length == 1) {
+                //普通类型
                 value = in.readObject((Class<?>) returnTypes[0]);
             } else {
+                //泛型
                 value = in.readObject((Class<?>) returnTypes[0], returnTypes[1]);
             }
             setValue(value);
@@ -153,6 +169,7 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
 
     private void handleAttachment(ObjectInput in) throws IOException {
         try {
+            //上下文是一个Map
             setAttachments((Map<String, String>) in.readObject(Map.class));
         } catch (ClassNotFoundException e) {
             rethrow(e);

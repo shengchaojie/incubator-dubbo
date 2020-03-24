@@ -19,29 +19,8 @@ package org.apache.dubbo.common.utils;
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
-import java.util.WeakHashMap;
+import java.lang.reflect.*;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -109,7 +88,6 @@ public class PojoUtils {
         if (pojo instanceof Enum<?>) {
             return ((Enum<?>) pojo).name();
         }
-        //处理枚举数组
         if (pojo.getClass().isArray() && Enum.class.isAssignableFrom(pojo.getClass().getComponentType())) {
             int len = Array.getLength(pojo);
             String[] values = new String[len];
@@ -133,7 +111,6 @@ public class PojoUtils {
         }
         history.put(pojo, pojo);
 
-        //处理普通数组
         if (pojo.getClass().isArray()) {
             int len = Array.getLength(pojo);
             Object[] dest = new Object[len];
@@ -238,19 +215,24 @@ public class PojoUtils {
 
     @SuppressWarnings("unchecked")
     private static Collection<Object> createCollection(Class<?> type, int len) {
+        //是否是ArrayList的父类
         if (type.isAssignableFrom(ArrayList.class)) {
             return new ArrayList<Object>(len);
         }
+        //是否是HashSet的父类
         if (type.isAssignableFrom(HashSet.class)) {
             return new HashSet<Object>(len);
         }
+        //不能是接口 并且type不能为虚类
         if (!type.isInterface() && !Modifier.isAbstract(type.getModifiers())) {
             try {
+                //反射创建对象
                 return (Collection<Object>) type.newInstance();
             } catch (Exception e) {
                 // ignore
             }
         }
+        //默认返回ArrayList
         return new ArrayList<Object>();
     }
 
@@ -301,10 +283,13 @@ public class PojoUtils {
             return null;
         }
 
+        //String转换成enum
         if (type != null && type.isEnum() && pojo.getClass() == String.class) {
             return Enum.valueOf((Class<Enum>) type, (String) pojo);
         }
 
+        //pojo是私有类型 或者如果是数组 数组的类型 需要是私有类型
+        //并且 不能将String[]转换为 Enum[]
         if (ReflectUtils.isPrimitives(pojo.getClass())
                 && !(type != null && type.isArray()
                 && type.getComponentType().isEnum()
@@ -312,6 +297,8 @@ public class PojoUtils {
             return CompatibleTypeUtils.compatibleTypeConvert(pojo, type);
         }
 
+        //缓存
+        //相同的pojo 比如String类型的 不必再次解析
         Object o = history.get(pojo);
 
         if (o != null) {
@@ -320,19 +307,25 @@ public class PojoUtils {
 
         history.put(pojo, pojo);
 
+        //如果pojo是数组
         if (pojo.getClass().isArray()) {
+            //array 转 collection
             if (Collection.class.isAssignableFrom(type)) {
                 Class<?> ctype = pojo.getClass().getComponentType();
                 int len = Array.getLength(pojo);
+                //创建Collection
                 Collection dest = createCollection(type, len);
                 history.put(pojo, dest);
                 for (int i = 0; i < len; i++) {
                     Object obj = Array.get(pojo, i);
+                    //递归 数组里面可能还是需要再次解析
                     Object value = realize0(obj, ctype, null, history);
                     dest.add(value);
                 }
                 return dest;
             } else {
+                //数组 转 数组
+                // TODO: 2020-02-06 为啥这里else一定是数组
                 Class<?> ctype = (type != null && type.isArray() ? type.getComponentType() : pojo.getClass().getComponentType());
                 int len = Array.getLength(pojo);
                 Object dest = Array.newInstance(ctype, len);
@@ -346,8 +339,10 @@ public class PojoUtils {
             }
         }
 
+        //pojo是collection
         if (pojo instanceof Collection<?>) {
             if (type.isArray()) {
+                //collection 转 array
                 Class<?> ctype = type.getComponentType();
                 Collection<Object> src = (Collection<Object>) pojo;
                 int len = src.size();
@@ -361,6 +356,7 @@ public class PojoUtils {
                 }
                 return dest;
             } else {
+                //collection 转collection
                 Collection<Object> src = (Collection<Object>) pojo;
                 int len = src.size();
                 Collection<Object> dest = createCollection(type, len);
@@ -378,10 +374,13 @@ public class PojoUtils {
             }
         }
 
+        //pojo 是map
         if (pojo instanceof Map<?, ?> && type != null) {
+            //从map中的class获取类型信息
             Object className = ((Map<Object, Object>) pojo).get("class");
             if (className instanceof String) {
                 try {
+                    //反射获取class对象
                     type = ClassHelper.forName((String) className);
                 } catch (ClassNotFoundException e) {
                     // ignore
@@ -389,6 +388,8 @@ public class PojoUtils {
             }
 
             // special logic for enum
+            // 如果type是enum类型
+            // 从map取name 并且反射获取enum
             if (type.isEnum()) {
                 Object name = ((Map<Object, Object>) pojo).get("name");
                 if (name != null) {
@@ -398,6 +399,7 @@ public class PojoUtils {
             Map<Object, Object> map;
             // when return type is not the subclass of return type from the signature and not an interface
             if (!type.isInterface() && !type.isAssignableFrom(pojo.getClass())) {
+                //如果 type 不是 Map类型 ，从map中移除class这一项
                 try {
                     map = (Map<Object, Object>) type.newInstance();
                     Map<Object, Object> mapPojo = (Map<Object, Object>) pojo;
@@ -411,12 +413,16 @@ public class PojoUtils {
                 map = (Map<Object, Object>) pojo;
             }
 
+            //type是 Map 或者 是Object
             if (Map.class.isAssignableFrom(type) || type == Object.class) {
+                //创建result map
                 final Map<Object, Object> result = createMap(map);
                 history.put(pojo, result);
                 for (Map.Entry<Object, Object> entry : map.entrySet()) {
+                    //获取泛型类型
                     Type keyType = getGenericClassByIndex(genericType, 0);
                     Type valueType = getGenericClassByIndex(genericType, 1);
+                    //获取map key的类型
                     Class<?> keyClazz;
                     if (keyType instanceof Class) {
                         keyClazz = (Class<?>) keyType;
@@ -425,6 +431,7 @@ public class PojoUtils {
                     } else {
                         keyClazz = entry.getKey() == null ? null : entry.getKey().getClass();
                     }
+                    //获取map value的类型
                     Class<?> valueClazz;
                     if (valueType instanceof Class) {
                         valueClazz = (Class<?>) valueType;
@@ -434,12 +441,15 @@ public class PojoUtils {
                         valueClazz = entry.getValue() == null ? null : entry.getValue().getClass();
                     }
 
+                    //递归解析
                     Object key = keyClazz == null ? entry.getKey() : realize0(entry.getKey(), keyClazz, keyType, history);
                     Object value = valueClazz == null ? entry.getValue() : realize0(entry.getValue(), valueClazz, valueType, history);
                     result.put(key, value);
                 }
                 return result;
             } else if (type.isInterface()) {
+                //type 是一个接口 生成代理对象
+                //生成的代理对象
                 Object dest = Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(), new Class<?>[]{type}, new PojoInvocationHandler(map));
                 history.put(pojo, dest);
                 return dest;
@@ -452,8 +462,10 @@ public class PojoUtils {
                         String name = (String) key;
                         Object value = entry.getValue();
                         if (value != null) {
+                            //获取setter方法 和 field
                             Method method = getSetterMethod(dest.getClass(), name, value.getClass());
                             Field field = getField(dest.getClass(), name);
+                            //如果method不存在 使用field 进行赋值
                             if (method != null) {
                                 if (!method.isAccessible()) {
                                     method.setAccessible(true);
@@ -479,6 +491,8 @@ public class PojoUtils {
                         }
                     }
                 }
+                //如果是异常
+                //反射生成异常
                 if (dest instanceof Throwable) {
                     Object message = map.get("message");
                     if (message instanceof String) {
