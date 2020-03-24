@@ -967,19 +967,24 @@ public final class ReflectUtils {
             return "";
         } else if (!returnType.isInterface()) {
             try {
+                //缓存
                 Object value = emptyInstances.get(returnType);
                 if (value == null) {
                     value = returnType.newInstance();
                     emptyInstances.put(returnType, value);
                 }
+
                 Class<?> cls = value.getClass();
                 while (cls != null && cls != Object.class) {
                     Field[] fields = cls.getDeclaredFields();
                     for (Field field : fields) {
+                        //isSynthetic 判断是否是编译器自行添加的field
                         if (field.isSynthetic()) {
                             continue;
                         }
+                        //针对类内部的field 也进行初始化 这边算一个递归
                         Object property = getEmptyObject(field.getType(), emptyInstances, level + 1);
+                        //使用反射赋值
                         if (property != null) {
                             try {
                                 if (!field.isAccessible()) {
@@ -990,6 +995,7 @@ public final class ReflectUtils {
                             }
                         }
                     }
+                    //对父类的field设置
                     cls = cls.getSuperclass();
                 }
                 return value;

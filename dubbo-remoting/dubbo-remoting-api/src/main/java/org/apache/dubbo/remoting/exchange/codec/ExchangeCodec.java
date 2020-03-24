@@ -53,10 +53,10 @@ public class ExchangeCodec extends TelnetCodec {
     protected static final byte MAGIC_HIGH = Bytes.short2bytes(MAGIC)[0];
     protected static final byte MAGIC_LOW = Bytes.short2bytes(MAGIC)[1];
     // message flag.
-    protected static final byte FLAG_REQUEST = (byte) 0x80;
-    protected static final byte FLAG_TWOWAY = (byte) 0x40;
-    protected static final byte FLAG_EVENT = (byte) 0x20;
-    protected static final int SERIALIZATION_MASK = 0x1f;
+    protected static final byte FLAG_REQUEST = (byte) 0x80; //1000 0000
+    protected static final byte FLAG_TWOWAY = (byte) 0x40;//0100 0000
+    protected static final byte FLAG_EVENT = (byte) 0x20;// 0010 0000
+    protected static final int SERIALIZATION_MASK = 0x1f;//00011111
     private static final Logger logger = LoggerFactory.getLogger(ExchangeCodec.class);
 
     public Short getMagicCode() {
@@ -77,6 +77,8 @@ public class ExchangeCodec extends TelnetCodec {
     @Override
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
         int readable = buffer.readableBytes();
+        //先把header读取
+        //header长度为16个字节
         byte[] header = new byte[Math.min(readable, HEADER_LENGTH)];
         buffer.readBytes(header);
         return decode(channel, buffer, readable, header);
@@ -85,31 +87,45 @@ public class ExchangeCodec extends TelnetCodec {
     @Override
     protected Object decode(Channel channel, ChannelBuffer buffer, int readable, byte[] header) throws IOException {
         // check magic number.
+        // 如果魔码不是dubbo,应该就是telnet了
         if (readable > 0 && header[0] != MAGIC_HIGH
                 || readable > 1 && header[1] != MAGIC_LOW) {
             int length = header.length;
             if (header.length < readable) {
+                //数组扩容 并且拷贝之前header
                 header = Bytes.copyOf(header, readable);
+                //读取剩下来的可读内容
                 buffer.readBytes(header, length, readable - length);
             }
             for (int i = 1; i < header.length - 1; i++) {
+                // 处理粘包 一个header的长度 可能包括了telnet  和dubbo头
                 if (header[i] == MAGIC_HIGH && header[i + 1] == MAGIC_LOW) {
+                    //回滚readerindex,只取telnet报文
                     buffer.readerIndex(buffer.readerIndex() - header.length + i);
+                    //header只放telnet报文
                     header = Bytes.copyOf(header, i);
                     break;
                 }
             }
+            //telnet逻辑解析
+            //进入到这边肯定是telnet报文
             return super.decode(channel, buffer, readable, header);
         }
+
+        //下面都是反序列化dubbo报文的逻辑
+
         // check length.
+        // 如果header读取长度不够，需要等待剩余报文到达
         if (readable < HEADER_LENGTH) {
             return DecodeResult.NEED_MORE_INPUT;
         }
 
         // get data length.
+        //从header中获取body报文的长度
         int len = Bytes.bytes2int(header, 12);
         checkPayload(channel, len);
 
+        //如果整个报文长度不够，需要等待读取
         int tt = len + HEADER_LENGTH;
         if (readable < tt) {
             return DecodeResult.NEED_MORE_INPUT;
@@ -134,22 +150,34 @@ public class ExchangeCodec extends TelnetCodec {
         }
     }
 
+    //header结构
+    // 0-1 magic code
+    // 2 前三位代表请求类型 100 Request 010 TwoWay 001 Event
+    // 后五位代表序列化方式(可以有16种序列化方式) 2 hessian 3 java 4 compact java 6 fastjson 7 native java 8 kyro  9 fst 10 protostuff
+    // 3 status  状态码见Response类
+    // 4-11 requestid
+    //12-15 body长度
     protected Object decodeBody(Channel channel, InputStream is, byte[] header) throws IOException {
         byte flag = header[2], proto = (byte) (flag & SERIALIZATION_MASK);
         // get request id.
         long id = Bytes.bytes2long(header, 4);
+        //如果不是Request
         if ((flag & FLAG_REQUEST) == 0) {
             // decode response.
             Response res = new Response(id);
+            //如果是event返回
             if ((flag & FLAG_EVENT) != 0) {
                 res.setEvent(true);
             }
             // get status.
+            //设置status
             byte status = header[3];
             res.setStatus(status);
             try {
+                //反序列化
                 ObjectInput in = CodecSupport.deserialize(channel.getUrl(), is, proto);
                 if (status == Response.OK) {
+                    //如果返回成功，以下的判断好像没软用，都是直接反序列化为Object
                     Object data;
                     if (res.isHeartbeat()) {
                         data = decodeHeartbeatData(channel, in);
@@ -160,6 +188,7 @@ public class ExchangeCodec extends TelnetCodec {
                     }
                     res.setResult(data);
                 } else {
+                    //如果是错误，body里存在的是错误信息
                     res.setErrorMessage(in.readUTF());
                 }
             } catch (Throwable t) {
@@ -167,7 +196,7 @@ public class ExchangeCodec extends TelnetCodec {
                 res.setErrorMessage(StringUtils.toString(t));
             }
             return res;
-        } else {
+        } else { //是Request
             // decode request.
             Request req = new Request(id);
             req.setVersion(Version.getProtocolVersion());

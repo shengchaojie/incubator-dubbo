@@ -90,26 +90,32 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
         ObjectInput in = CodecSupport.getSerialization(channel.getUrl(), serializationType)
                 .deserialize(channel.getUrl(), input);
 
+        //请求报文body 第一部分是 dubbo的版本号
         String dubboVersion = in.readUTF();
         request.setVersion(dubboVersion);
         setAttachment(Constants.DUBBO_VERSION_KEY, dubboVersion);
-
+        //请求报文body 第二部分是 接口全限定名
         setAttachment(Constants.PATH_KEY, in.readUTF());
+        //第三部分 版本号
         setAttachment(Constants.VERSION_KEY, in.readUTF());
-
+        //第四部分 方法名
         setMethodName(in.readUTF());
+        //
         try {
             Object[] args;
             Class<?>[] pts;
+            //方法参数类型
             String desc = in.readUTF();
             if (desc.length() == 0) {
                 pts = DubboCodec.EMPTY_CLASS_ARRAY;
                 args = DubboCodec.EMPTY_OBJECT_ARRAY;
             } else {
+                //反射成class数组
                 pts = ReflectUtils.desc2classArray(desc);
                 args = new Object[pts.length];
                 for (int i = 0; i < args.length; i++) {
                     try {
+                        //读取方法入参
                         args[i] = in.readObject(pts[i]);
                     } catch (Exception e) {
                         if (log.isWarnEnabled()) {
@@ -120,6 +126,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
             }
             setParameterTypes(pts);
 
+            //读取上下文
             Map<String, String> map = (Map<String, String>) in.readObject(Map.class);
             if (map != null && map.size() > 0) {
                 Map<String, String> attachment = getAttachments();
@@ -129,6 +136,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
                 attachment.putAll(map);
                 setAttachments(attachment);
             }
+            // TODO: 2020-03-24 callback相关逻辑 这个不常用
             //decode argument ,may be callback
             for (int i = 0; i < args.length; i++) {
                 args[i] = decodeInvocationArgument(channel, this, pts, i, args[i]);

@@ -23,13 +23,20 @@ import org.apache.dubbo.config.annotation.Reference;
 import org.apache.dubbo.demo.DemoService;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 @Component("demoServiceComponent")
 public class DemoServiceComponent implements DemoService {
-    @Reference
+    @Reference(check = false,mock = "force:return {ABC:abc}")
     private DemoService demoService;
 
     @Override
     public String sayHello(String name) {
         return demoService.sayHello(name);
+    }
+
+    @Override
+    public Map<String, String> testMap() {
+        return null;
     }
 }
