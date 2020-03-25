@@ -130,8 +130,11 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     public void subscribe(URL url) {
         setConsumerUrl(url);
+        //注册消费者配置回调
         consumerConfigurationListener.addNotifyListener(this);
+        //注册路由配置回调
         serviceConfigurationListener = new ReferenceConfigurationListener(this, url);
+        //注册 注册中心回调
         registry.subscribe(url, this);
     }
 
