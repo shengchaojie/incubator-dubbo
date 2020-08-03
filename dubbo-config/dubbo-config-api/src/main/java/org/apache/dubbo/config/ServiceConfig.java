@@ -260,6 +260,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         }
 
         if (ref instanceof GenericService) {
+            //泛化实现
             interfaceClass = GenericService.class;
             if (StringUtils.isEmpty(generic)) {
                 generic = Boolean.TRUE.toString();

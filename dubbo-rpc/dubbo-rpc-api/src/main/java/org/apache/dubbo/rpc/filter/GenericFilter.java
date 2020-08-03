@@ -48,10 +48,12 @@ public class GenericFilter implements Filter {
                 && inv.getArguments() != null
                 && inv.getArguments().length == 3
                 && !GenericService.class.isAssignableFrom(invoker.getInterface())) {
+            //从argument提取目标方法名 方法类型 方法参数
             String name = ((String) inv.getArguments()[0]).trim();
             String[] types = (String[]) inv.getArguments()[1];
             Object[] args = (Object[]) inv.getArguments()[2];
             try {
+                //反射获取目标执行方法
                 Method method = ReflectUtils.findMethodByMethodSignature(invoker.getInterface(), name, types);
                 Class<?>[] params = method.getParameterTypes();
                 if (args == null) {
@@ -63,6 +65,7 @@ public class GenericFilter implements Filter {
                     generic = RpcContext.getContext().getAttachment(Constants.GENERIC_KEY);
                 }
 
+                //一些反序列化
                 if (StringUtils.isEmpty(generic)
                         || ProtocolUtils.isDefaultGenericSerialization(generic)) {
                     args = PojoUtils.realize(args, params, method.getGenericParameterTypes());
@@ -102,6 +105,7 @@ public class GenericFilter implements Filter {
                         }
                     }
                 }
+                //方法调用
                 Result result = invoker.invoke(new RpcInvocation(method, args, inv.getAttachments()));
                 if (result.hasException()
                         && !(result.getException() instanceof GenericException)) {

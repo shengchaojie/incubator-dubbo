@@ -195,6 +195,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             setGeneric(getConsumer().getGeneric());
         }
         if (ProtocolUtils.isGeneric(getGeneric())) {
+            //如果是泛化调用
             interfaceClass = GenericService.class;
         } else {
             try {
